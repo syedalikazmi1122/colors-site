@@ -1,27 +1,22 @@
-import logo from './logo.svg';
-import './App.css';
-import Navbar from './Components/Navbar';
-import TopSection from './Components/Landingpage/topsection';
-import SecondSection from './Components/Landingpage/secondsection';
-import ThirdSection from './Components/Landingpage/thirdsection';
-import Footer from './Components/Landingpage/footer';
-import EmailSignup from './Components/Landingpage/emailsection';
-import LargeSamples from './Components/Landingpage/largesamples';
-import BedroomRefresh from './Components/Landingpage/bedroom';
-import EmailandInstagram from './Components/Landingpage/emailandinstagram';
-
+import React from "react";
+import { Route, Routes, BrowserRouter as Router } from "react-router-dom";
+import LandingPage from "./Pages/Home";
+import CategoryPage from "./Pages/Category";
+import { Login } from "./Pages/Login";
+import { ProductInfo } from "./Pages/Product";
 function App() {
   return (
     <>
-      <Navbar />
-      <TopSection />
-      <SecondSection/>
-      <ThirdSection/>
-      <EmailSignup/>
-      <LargeSamples/>
-      <BedroomRefresh/>
-      <EmailandInstagram/>
-      <Footer/>
+    <Router>
+      <Routes>
+        <Route path="/" element={<LandingPage/>} />
+        <Route path="/category" element={<CategoryPage/>} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/product" element={<ProductInfo/>} />
+        <Route path="/category" element={<h1>Category</h1>} />
+        <Route path="/category/:id" element={<h1>Category Details</h1>} />
+      </Routes>
+    </Router>
     </>
   );
 }

@@ -1,9 +1,10 @@
-"use client"
+"use client";
 
-import { useState } from "react"
+import { useState } from "react";
+import { Instagram } from "lucide-react";
 
 const InstagramShop = () => {
-  const [email, setEmail] = useState("")
+  const [email, setEmail] = useState("");
 
   const instagramImages = [
     "https://images.unsplash.com/photo-1616046229478-9901c5536a45?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80",
@@ -12,43 +13,51 @@ const InstagramShop = () => {
     "https://www.marthastewart.com/thmb/XeQPTA5L3FJar2Kse2Me03dsXxk=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/BethanyAdamsInteriors_ModernTudor_LouisvilleKY73-e4c6f2d0efe64d85b5d00fa72be491ed.jpg",
     "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRPN7Uq5rCfO0dJ-K7zVgGzoguXldl5YaaWyQ&s",
     "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS4TE9rE0gfkZOCRhgQQrMbNcwxzXoKyEdZ0g&s",
-  ]
+  ];
 
   const handleSubscribe = (e) => {
-    e.preventDefault()
-    console.log("Subscribed with email:", email)
-  }
+    e.preventDefault();
+    console.log("Subscribed with email:", email);
+  };
 
   return (
     <div className="bg-white py-10 md:py-16">
       <div className="max-w-[1600px] mx-auto px-4 sm:px-8">
         {/* Instagram Section */}
         <div className="text-center mb-8 md:mb-12">
-          <h2 className="text-lg sm:text-xl md:text-xl  text-gray-800 font-serif">Follow Along</h2>
-         
+          <h2 className="text-lg sm:text-xl md:text-xl text-gray-800 font-serif">
+            Follow Along
+          </h2>
           <p className="mt-2 md:mt-4 text-sm md:text-base text-gray-600 font-serif">
-             @lovessdesign
+            @lovessdesign
           </p>
         </div>
 
         {/* Instagram Images Grid - responsive grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-8 mb-10 md:mb-16">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4">
           {instagramImages.map((image, index) => (
-            <div key={index} className="aspect-square overflow-hidden">
+            <div
+              key={index}
+              className="relative aspect-square overflow-hidden group cursor-pointer"
+            >
+              {/* Image */}
               <img
                 src={image || "/placeholder.svg"}
                 alt={`Instagram post ${index + 1}`}
-                className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
+                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
               />
+              
+              {/* Overlay with Instagram Logo */}
+              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center">
+                <Instagram className="text-white w-8 h-8 opacity-0 group-hover:opacity-100 transform scale-0 group-hover:scale-100 transition-all duration-300" />
+              </div>
             </div>
           ))}
         </div>
-
-      
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default InstagramShop
+export default InstagramShop;
 

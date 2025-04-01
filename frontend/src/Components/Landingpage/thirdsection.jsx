@@ -135,16 +135,7 @@
         </div>
 
       
-      <div className="fixed bottom-8 right-8">
-        <button 
-          className="bg-gray-900 text-white p-4 rounded-full shadow-lg hover:bg-gray-800 transition-colors duration-200"
-          aria-label="Chat with us"
-        >
-          <div className="w-6 h-6 flex items-center justify-center">
-            <span className="block w-3 h-3 bg-white rounded-full"></span>
-          </div>
-        </button>
-      </div>
+     
       </>
     )
   }

@@ -155,7 +155,7 @@ import {
   Linkedin 
 } from 'lucide-react';
 
-const McGeeFooter = () => {
+const Footer = () => {
   const socialIcons = [
     { Icon: Instagram, href: '#' },
     { Icon: TicketIcon, href: '#' },
@@ -189,7 +189,7 @@ const McGeeFooter = () => {
   };
 
   return (
-    <footer className="bg-white text-gray-800 py-20 px-20">
+    <footer className="bg-gray-100 text-gray-800 py-20 px-20">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-20">
         {/* VIP Sign Up Section */}
         <div>
@@ -261,4 +261,4 @@ const McGeeFooter = () => {
   );
 };
 
-export default McGeeFooter;
+export default Footer;
