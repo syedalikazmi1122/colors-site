@@ -2,7 +2,7 @@ import Navbar from './../../Components/Navbar/index.jsx';
 import TopSection from './../../Components/Landingpage/topsection';
 import SecondSection from './../../Components/Landingpage/secondsection';
 import ThirdSection from './../../Components/Landingpage/thirdsection';
-import Footer from './../../Components/Landingpage/footer';
+import Footer from '../../Components/Footer/index.jsx';
 import EmailSignup from './../../Components/Landingpage/emailsection';
 import LargeSamples from './../../Components/Landingpage/largesamples';
 import BedroomRefresh from './../../Components/Landingpage/bedroom';

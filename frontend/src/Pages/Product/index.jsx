@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Star } from 'lucide-react';
 import Navbar from '../../Components/Navbar';
-import Footer from '../../Components/Landingpage/footer';
+import Footer from '../../Components/Footer';
 
 
 
