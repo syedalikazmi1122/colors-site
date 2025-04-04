@@ -118,7 +118,7 @@ const Navbar = () => {
             </button>
 
             {/* User icon - Hidden on smallest screens */}
-            <a href="/account" className="hidden sm:block text-gray-600 hover:text-black">
+            <a href="/profle" className="hidden sm:block text-gray-600 hover:text-black">
               <UserIcon size={20} />
             </a>
 

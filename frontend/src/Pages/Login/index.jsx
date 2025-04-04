@@ -5,13 +5,10 @@ import sendRequest from '../../Utils/apirequest';
 import toast, { Toaster } from 'react-hot-toast';
 import useProfileAuthStore from '../../Zustand/profileAuthStore';
 import { useNavigate } from 'react-router-dom';
+
 export function Login() {
   const navigate = useNavigate();
-  const setEmail = useProfileAuthStore((state) => state.setEmail);
-  const setName = useProfileAuthStore((state) => state.setName);  
-  const setRole = useProfileAuthStore((state) => state.setRole);
-  const setIsLoggedIn = useProfileAuthStore((state) => state.setIsLoggedIn);
-
+  const setUser = useProfileAuthStore((state) => state.setUser);
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -30,19 +27,20 @@ export function Login() {
       const response = await sendRequest('POST', '/login', formData);
 
       if (response.status === 200) {
-        
-        console.log('Login successful:', response.data);  
+        console.log('Login successful:', response.data);
         toast.success('Login successful!');
+
         // Store token in localStorage
         localStorage.setItem('token', response.data.token);
-        // extract user data from token
-        const userData = JSON.parse(atob(response.data.token.split('.')[1]));
-        setEmail(response.data.user.email);
-        setName(userData.data.user.name);
-        setRole(userData.data.user.role);
-        setIsLoggedIn(true);
-         navigate('/profile');
-        // Optionally, redirect to another page
+
+        // Extract user data from response
+        const user = response.data.user;
+
+        // Set user in Zustand store
+        setUser(user);
+
+        // Navigate to profile page
+        navigate('/profile');
       } else {
         toast.error('Invalid email or password. Please try again.');
       }

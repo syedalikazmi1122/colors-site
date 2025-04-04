@@ -6,6 +6,7 @@ import { Login } from "./Pages/Login";
 import { ProductInfo } from "./Pages/Product";
 import { Signup } from "./Pages/Signup";
 import  Dashboard from "./Pages/Dashboard/index.jsx";
+import { AdminUpload } from "./Pages/UploadSVG/index.jsx";
 function App() {
   return (
     <>
@@ -13,6 +14,7 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage/>} />
         <Route path="/category" element={<CategoryPage/>} />
+        <Route path="/admin/upload" element={<AdminUpload/>} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
         <Route path="/profile" element={<Dashboard /> } />

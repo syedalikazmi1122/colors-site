@@ -11,7 +11,7 @@ function AccountInformation( ) {
           <div className="flex justify-between items-start">
             <div>
               <p className="mb-1">{name}</p>
-              <p className="text-gray-600">Pakitan</p>
+             
             </div>
             <button className="text-gray-700 hover:underline">Manage Address</button>
           </div>

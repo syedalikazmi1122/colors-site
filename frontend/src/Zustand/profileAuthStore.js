@@ -6,10 +6,6 @@ const useProfileAuthStore = create((set) => ({
     email: "",
     role : "",
     isLoggedIn: false,
-    setName: (name) => set(() => ({ name })),
-    setEmail: (email) => set(() => ({ email })),
-    setPassword: (password) => set(() => ({ password })),
-    setRole: (role) => set(() => ({ role })),
-    setIsLoggedIn: (isLoggedIn) => set(() => ({ isLoggedIn }))
+    setUser :(user) => set(() => ({ name: user.name, email: user.email, role: user.role, isLoggedIn: true }))
 }));
 export default useProfileAuthStore;

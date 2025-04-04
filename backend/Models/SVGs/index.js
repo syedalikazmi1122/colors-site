@@ -2,7 +2,7 @@ import { Schema, model } from 'mongoose';
 import slugify from 'slugify'; 
 const SvgSchema = new Schema(
     {
-        name: {
+        title: {
             type: String,
             required: true,
         },
