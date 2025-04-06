@@ -5,6 +5,7 @@ import sendRequest from '../../Utils/apirequest';
 import toast, { Toaster } from 'react-hot-toast';
 import useProfileAuthStore from '../../Zustand/profileAuthStore';
 import { useNavigate } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 
 export function Login() {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ export function Login() {
     email: '',
     password: ''
   });
+  const [showPassword, setShowPassword] = useState(false); // State to toggle password visibility
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -85,7 +87,7 @@ export function Login() {
 
               <div className="relative">
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'} // Toggle input type
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
@@ -93,12 +95,13 @@ export function Login() {
                   required
                   className="w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-0 focus:border-gray-900"
                 />
-                <a
-                  href="#"
-                  className="absolute right-0 top-1/2 -translate-y-1/2 mr-3 text-sm text-gray-600 hover:text-gray-900"
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)} // Toggle password visibility
+                  className="absolute right-0 top-1/2 -translate-y-1/2 mr-3 text-gray-600 hover:text-gray-900"
                 >
-                  Forgot your password?
-                </a>
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
 

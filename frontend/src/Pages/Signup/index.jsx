@@ -3,6 +3,7 @@ import Footer from '../../Components/Footer';
 import Navbar from '../../Components/Navbar';
 import sendRequest from '../../Utils/apirequest';
 import toast, { Toaster } from 'react-hot-toast';
+import { Eye, EyeOff } from 'lucide-react';
 
 export function Signup() {
   const [formData, setFormData] = useState({
@@ -12,6 +13,8 @@ export function Signup() {
     password: '',
     confirmPassword: ''
   });
+  const [showPassword, setShowPassword] = useState(false); // State to toggle password visibility
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false); // State to toggle confirm password visibility
 
   const validateForm = () => {
     const { firstName, lastName, email, password, confirmPassword } = formData;
@@ -21,7 +24,8 @@ export function Signup() {
       toast.error('First and last name are required.');
       return false;
     }
-  // validate name format and allow spaces too
+
+    // Validate name format and allow spaces too
     const nameRegex = /^[a-zA-Z\s]+$/;
     if (!nameRegex.test(firstName) || !nameRegex.test(lastName)) {
       toast.error('First and last name can only contain letters and spaces.');
@@ -139,9 +143,9 @@ export function Signup() {
                 />
               </div>
 
-              <div>
+              <div className="relative">
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'} // Toggle input type
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
@@ -149,11 +153,18 @@ export function Signup() {
                   required
                   className="w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-0 focus:border-gray-900"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)} // Toggle password visibility
+                  className="absolute right-0 top-1/2 -translate-y-1/2 mr-3 text-gray-600 hover:text-gray-900"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
 
-              <div>
+              <div className="relative">
                 <input
-                  type="password"
+                  type={showConfirmPassword ? 'text' : 'password'} // Toggle input type
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
@@ -161,6 +172,13 @@ export function Signup() {
                   required
                   className="w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-0 focus:border-gray-900"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)} // Toggle confirm password visibility
+                  className="absolute right-0 top-1/2 -translate-y-1/2 mr-3 text-gray-600 hover:text-gray-900"
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
 
@@ -171,9 +189,6 @@ export function Signup() {
               >
                 CREATE ACCOUNT
               </button>
-
-              
-           
             </div>
 
             <div className="text-center">
