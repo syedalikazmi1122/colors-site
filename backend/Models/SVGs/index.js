@@ -6,6 +6,10 @@ const SvgSchema = new Schema(
             type: String,
             required: true,
         },
+        price: {
+            type: Number,
+            required: true,
+        },
         category: {
             type: String,
             required: true,
@@ -37,12 +41,11 @@ const SvgSchema = new Schema(
     }
 );
 
-// Middleware to generate slug before saving
 SvgSchema.pre('save', function (next) {
     if (!this.slug) {
         this.slug = slugify(this.name, {
-            lower: true, // Convert to lowercase
-            strict: true, // Remove special characters
+            lower: true, 
+            strict: true, 
         });
     }
     next();
