@@ -1,6 +1,20 @@
 "use client"
 
-function AccountSidebar({ navItems, activeTab, setActiveTab }) {
+import { CreditCard, Package, Heart, LogOut, User, Lock } from "lucide-react"
+import useAuthStore from "./../../Zustand/profileAuthStore" // Adjust the path to your Zustand store
+
+function AccountSidebar({ activeTab, setActiveTab }) {
+  const logout = useAuthStore((state) => state.logout) // Access the logout function from Zustand
+
+  const navItems = [
+    { id: "account", label: "Account Information", icon: User },
+    { id: "orders", label: "My Orders", icon: Package },
+    { id: "payment", label: "Payment Methods", icon: CreditCard },
+    { id: "password", label: "Change Password", icon: Lock },
+    { id: "wishlist", label: "Wishlist", icon: Heart },
+    { id: "logout", label: "Logout", icon: LogOut },
+  ]
+
   return (
     <>
       {/* Sidebar Navigation - Mobile Dropdown */}
@@ -30,7 +44,14 @@ function AccountSidebar({ navItems, activeTab, setActiveTab }) {
                 className={`w-full text-left py-2 flex items-center space-x-2 hover:text-gray-900 ${
                   activeTab === item.id ? "text-gray-900 font-medium" : "text-gray-600"
                 }`}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => {
+                  if (item.id === "logout") {
+                    localStorage.removeItem("token") // Remove token from local storage
+                    logout() // Call the logout function
+                  } else {
+                    setActiveTab(item.id)
+                  }
+                }}
               >
                 <Icon className="w-4 h-4" />
                 <span>{item.label}</span>
@@ -44,4 +65,3 @@ function AccountSidebar({ navItems, activeTab, setActiveTab }) {
 }
 
 export default AccountSidebar
-

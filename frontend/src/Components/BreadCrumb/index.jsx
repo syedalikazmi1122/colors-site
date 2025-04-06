@@ -7,9 +7,7 @@ export default function BreadCrumb() {
                 <a href="/" className="text-gray-500 text-xs hover:text-gray-700">Home</a>
                 <span className="text-gray-500">/</span>
                 <a href="/products" className="text-xs text-gray-500 hover:text-gray-700">Products</a>
-                <span className="text-gray-500">/</span>
-                <span className="text-gray-700 text-xs font-semibold">Product Name</span>
-            </div>
+                          </div>
         </div>
     )
 }

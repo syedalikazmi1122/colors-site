@@ -1,66 +1,7 @@
 import React, { useRef } from 'react';
 
-const furnitureItems = [
-  {
-    name: "Taylor Pleated Bed (Ready to Ship)",
-    image: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&q=80&w=800",
-    currentPrice: 1416.75,
-    originalPrice: 1889.00,
-    discount: "25% off",
-    prefix: "From"
-  },
-  {
-    name: "Alessandra Dresser",
-    image: "https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?auto=format&fit=crop&q=80&w=800",
-    currentPrice: 2520.00,
-    originalPrice: 3360.00,
-    discount: "25% off"
-  },
-  {
-    name: "Alessandra Nightstand",
-    image: "https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?auto=format&fit=crop&q=80&w=800",
-    currentPrice: 866.25,
-    originalPrice: 1155.00,
-    discount: "25% off"
-  },
-  {
-    name: "Serena Wood Lounge Chair",
-    image: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&q=80&w=800",
-    currentPrice: 1143.75,
-    originalPrice: 1525.00,
-    discount: "25% off"
-  },
-  {
-    name: "Modern Platform Bed",
-    image: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&q=80&w=800",
-    currentPrice: 1299.99,
-    originalPrice: 1699.99,
-    discount: "24% off"
-  },
-  {
-    name: "Coastal Nightstand",
-    image: "https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?auto=format&fit=crop&q=80&w=800",
-    currentPrice: 599.99,
-    originalPrice: 799.99,
-    discount: "25% off"
-  },
-  {
-    name: "Leather Accent Chair",
-    image: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&q=80&w=800",
-    currentPrice: 1099.50,
-    originalPrice: 1499.99,
-    discount: "27% off"
-  },
-  {
-    name: "Mid-Century Console",
-    image: "https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?auto=format&fit=crop&q=80&w=800",
-    currentPrice: 849.75,
-    originalPrice: 1133.00,
-    discount: "25% off"
-  }
-];
-
-function App() {
+function App({SecondSectionData}) {
+  console.log(SecondSectionData, "SecondSectionData")
   const scrollContainerRef = useRef(null);
   
   const scrollLeft = () => {
@@ -98,32 +39,30 @@ function App() {
             className="flex overflow-x-auto pb-6 scrollbar-hide snap-x snap-mandatory"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
-            {furnitureItems.map((item, index) => (
+            {SecondSectionData.map((item, index) => (
               <div key={index} className="flex-none w-64 mx-3 snap-start">
                 <div className="group">
                   <div className="relative mb-4">
                     <img 
-                      src={item.image} 
-                      alt={item.name}
+                      src={item.url} 
+                      alt={item.title}
                       className="w-full aspect-[4/3] object-cover object-center bg-gray-100 rounded"
                     />
                   </div>
                   
                   <div className="space-y-1">
                     <h3 className="text-[15px] leading-tight text-gray-900 hover:text-gray-600 transition-colors duration-200">
-                      {item.name}
+                      {item.title}
                     </h3>
                     <div className="flex flex-wrap items-baseline gap-x-1.5 text-[13px]">
-                      {item.prefix && (
+                      {/* {item.prefix && (
                         <span className="text-gray-900">From</span>
-                      )}
-                      <span className="text-red-600 font-medium">
-                        ${item.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      )} */}
+                     
+                      <span className="text-gray-500 ">
+                        ${item.price}
                       </span>
-                      <span className="text-gray-500 line-through">
-                        ${item.originalPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </span>
-                      <span className="text-gray-500">({item.discount})</span>
+                      {/* <span className="text-gray-500">({item.discount})</span> */}
                     </div>
                   </div>
                 </div>

@@ -1,7 +1,6 @@
 "use client"
 
-import { useState } from "react"
-import { CreditCard, Package, Heart, LogOut, User, Lock } from "lucide-react"
+import { useState } from "react";
 import Navbar from "./../../Components/Navbar"
 import Footer from "./../../Components/Footer"
 import AccountSidebar from "./../../Components/Dashboard/Sidebar"
@@ -26,15 +25,7 @@ function AccountLayout() {
   const orders = []
 
   // Navigation items with icons
-  const navItems = [
-    { id: "account", label: "Account Information", icon: User },
-    { id: "orders", label: "My Orders", icon: Package },
-    { id: "payment", label: "Payment Methods", icon: CreditCard },
-    { id: "password", label: "Change Password", icon: Lock },
-    { id: "wishlist", label: "Wishlist", icon: Heart },
-    { id: "logout", label: "Logout", icon: LogOut },
-  ]
-
+ 
   // Render the appropriate content based on active tab
   const renderContent = () => {
     switch (activeTab) {
@@ -58,7 +49,7 @@ function AccountLayout() {
       <Navbar />
       <div className="mx-auto px-4 sm:px-6 md:px-12 py-12">
         <div className="flex flex-col md:flex-row gap-8">
-          <AccountSidebar navItems={navItems} activeTab={activeTab} setActiveTab={setActiveTab} />
+          <AccountSidebar  activeTab={activeTab} setActiveTab={setActiveTab} />
 
           {/* Main Content */}
           <div className="flex-1">

@@ -37,27 +37,28 @@ const shopCategories= [
   }
 ];
 
-export default function ShopByCategory() {
+export default function ShopByCategory({ThirdSectionData}) {
+  console.log(ThirdSectionData, "third section data")
   return (
     <div className='bg-gray-100'>
     <div className=" bg-gray-100 mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <h2 className="text-2xl font-serif mb-12 text-gray-900">Shop By Category</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {shopCategories.map((category, index) => (
+        {ThirdSectionData?.map((category, index) => (
           <a 
             key={index} 
-            href={category.link}
+            href={`products/${category.slug}`}
             className="group block"
           >
             <div className="relative aspect-[4/3] overflow-hidden mb-4">
               <img 
-                src={category.image} 
-                alt={category.name}
+                src={category.url} 
+                alt={category.title}
                 className="w-full h-full object-cover object-center transform group-hover:scale-105 transition-transform duration-500"
               />
             </div>
             <h3 className="text-base text-gray-900 group-hover:text-gray-600 transition-colors duration-200">
-              {category.name}
+              {category.title}
             </h3>
           </a>
         ))}

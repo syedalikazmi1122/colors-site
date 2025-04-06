@@ -3,11 +3,11 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 
 export function CategoryFilters() {
   const [sections, setSections] = useState({
-    availability: true,
-    price: true,
-    productType: true,
-    finish: true,
-    color: true
+    availability: false,
+    price: false,
+    productType: false,
+    finish: false,
+    color: false
   });
 
   const toggleSection = (section) => {
@@ -18,19 +18,19 @@ export function CategoryFilters() {
   };
 
   return (
-    <div className="w-64 flex-shrink-0 pr-8">
-      <div className="space-y-6 divide-y divide-gray-200">
+    <div className="w-full sm:w-64 flex-shrink-0 sm:pr-4 p-3">
+      <div className="divide-y divide-gray-200">
         {/* Availability Filter */}
-        <div className="py-6 first:pt-0">
+        <div className="py-4">
           <button 
             className="flex items-center justify-between w-full group"
             onClick={() => toggleSection('availability')}
           >
-            <h3 className="text-sm font-medium text-gray-900">Availability</h3>
+            <h3 className="text-base font-medium text-gray-900">Availability</h3>
             {sections.availability ? (
-              <ChevronUp className="w-5 h-5 text-gray-500 group-hover:text-gray-700" />
+              <ChevronUp className="w-5 h-5 text-gray-500" />
             ) : (
-              <ChevronDown className="w-5 h-5 text-gray-500 group-hover:text-gray-700" />
+              <ChevronDown className="w-5 h-5 text-gray-500" />
             )}
           </button>
           {sections.availability && (
@@ -47,16 +47,16 @@ export function CategoryFilters() {
         </div>
 
         {/* Price Filter */}
-        <div className="py-6">
+        <div className="py-4">
           <button 
             className="flex items-center justify-between w-full group"
             onClick={() => toggleSection('price')}
           >
-            <h3 className="text-sm font-medium text-gray-900">Price</h3>
+            <h3 className="text-base font-medium text-gray-900">Price</h3>
             {sections.price ? (
-              <ChevronUp className="w-5 h-5 text-gray-500 group-hover:text-gray-700" />
+              <ChevronUp className="w-5 h-5 text-gray-500" />
             ) : (
-              <ChevronDown className="w-5 h-5 text-gray-500 group-hover:text-gray-700" />
+              <ChevronDown className="w-5 h-5 text-gray-500" />
             )}
           </button>
           {sections.price && (
@@ -88,16 +88,16 @@ export function CategoryFilters() {
         </div>
 
         {/* Product Type Filter */}
-        <div className="py-6">
+        <div className="py-4">
           <button 
             className="flex items-center justify-between w-full group"
             onClick={() => toggleSection('productType')}
           >
-            <h3 className="text-sm font-medium text-gray-900">Product type</h3>
+            <h3 className="text-base font-medium text-gray-900">Product type</h3>
             {sections.productType ? (
-              <ChevronUp className="w-5 h-5 text-gray-500 group-hover:text-gray-700" />
+              <ChevronUp className="w-5 h-5 text-gray-500" />
             ) : (
-              <ChevronDown className="w-5 h-5 text-gray-500 group-hover:text-gray-700" />
+              <ChevronDown className="w-5 h-5 text-gray-500" />
             )}
           </button>
           {sections.productType && (
@@ -110,16 +110,16 @@ export function CategoryFilters() {
         </div>
 
         {/* Finish Filter */}
-        <div className="py-6">
+        <div className="py-4">
           <button 
             className="flex items-center justify-between w-full group"
             onClick={() => toggleSection('finish')}
           >
-            <h3 className="text-sm font-medium text-gray-900">Finish</h3>
+            <h3 className="text-base font-medium text-gray-900">Finish</h3>
             {sections.finish ? (
-              <ChevronUp className="w-5 h-5 text-gray-500 group-hover:text-gray-700" />
+              <ChevronUp className="w-5 h-5 text-gray-500" />
             ) : (
-              <ChevronDown className="w-5 h-5 text-gray-500 group-hover:text-gray-700" />
+              <ChevronDown className="w-5 h-5 text-gray-500" />
             )}
           </button>
           {sections.finish && (
@@ -132,16 +132,16 @@ export function CategoryFilters() {
         </div>
 
         {/* Color Filter */}
-        <div className="py-6">
+        <div className="py-4">
           <button 
             className="flex items-center justify-between w-full group"
             onClick={() => toggleSection('color')}
           >
-            <h3 className="text-sm font-medium text-gray-900">Color</h3>
+            <h3 className="text-base font-medium text-gray-900">Color</h3>
             {sections.color ? (
-              <ChevronUp className="w-5 h-5 text-gray-500 group-hover:text-gray-700" />
+              <ChevronUp className="w-5 h-5 text-gray-500" />
             ) : (
-              <ChevronDown className="w-5 h-5 text-gray-500 group-hover:text-gray-700" />
+              <ChevronDown className="w-5 h-5 text-gray-500" />
             )}
           </button>
           {sections.color && (
