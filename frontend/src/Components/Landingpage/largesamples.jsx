@@ -1,11 +1,13 @@
+
+import Image1 from "./../../../src/Assets/1.jpg"
 const CustomSamples = () => {
     return (
       <div className="flex items-center justify-center py-10 md:py-16 px-4 sm:px-8 bg-white">
         <div className="max-w-[1200px] w-full flex flex-col lg:flex-row lg:items-center lg:space-x-8 xl:space-x-16">
           {/* Image - Full width on mobile, 1/2 on desktop */}
-          <div className="w-full lg:w-1/2 mb-8 lg:mb-0">
+          <div className="h w-full lg:w-1/2 mb-8 lg:mb-0">
             <img
-              src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80"
+              src={Image1}
               alt="Woman holding wallpaper sample"
               className="w-full object-cover"
             />

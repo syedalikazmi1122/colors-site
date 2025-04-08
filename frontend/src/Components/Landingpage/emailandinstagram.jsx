@@ -2,17 +2,23 @@
 
 import { useState } from "react";
 import { Instagram } from "lucide-react";
+import Image10 from "./../../../src/Assets/10.jpg";
+import Image11 from "./../../../src/Assets/12.jpg";
+import Image12 from "./../../../src/Assets/13.jpg";
+import Image14 from "./../../../src/Assets/14.jpg";
+import Image15 from "./../../../src/Assets/15.jpg";
+import Image16 from "./../../../src/Assets/16.jpg";
 
 const InstagramShop = () => {
   const [email, setEmail] = useState("");
 
   const instagramImages = [
-    "https://images.unsplash.com/photo-1616046229478-9901c5536a45?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80",
-    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSrZo3IKm7gQ2YlEN5MSFmWIKfVEYZlKBVfCg&s",
-    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRj3tWKGdbvtLSnSPEwE3cj4DypLjBBz3gtCg&s",
-    "https://www.marthastewart.com/thmb/XeQPTA5L3FJar2Kse2Me03dsXxk=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/BethanyAdamsInteriors_ModernTudor_LouisvilleKY73-e4c6f2d0efe64d85b5d00fa72be491ed.jpg",
-    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRPN7Uq5rCfO0dJ-K7zVgGzoguXldl5YaaWyQ&s",
-    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS4TE9rE0gfkZOCRhgQQrMbNcwxzXoKyEdZ0g&s",
+  Image10,
+  Image11,
+  Image12,
+  Image14,
+  Image15,
+  Image16
   ];
 
   const handleSubscribe = (e) => {

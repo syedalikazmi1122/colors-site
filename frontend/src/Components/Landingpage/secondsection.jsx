@@ -1,7 +1,59 @@
 import React, { useRef } from 'react';
 
-function App({SecondSectionData}) {
-  console.log(SecondSectionData, "SecondSectionData")
+import Image1 from "./../../../src/Assets/1.jpg";
+import Image2 from "./../../../src/Assets/2.jpg";
+import Image3 from "./../../../src/Assets/3.jpg";
+import Image4 from "./../../../src/Assets/4.jpg";
+import Image5 from "./../../../src/Assets/5.jpg";
+import Image6 from "./../../../src/Assets/6.jpg";
+const furnitureItems = [
+  {
+    name: "Taylor Pleated Bed (Ready to Ship)",
+    image: Image1,
+    currentPrice: 1416.75,
+    originalPrice: 1889.00,
+    discount: "25% off",
+    prefix: "From"
+  },
+  {
+    name: "Alessandra Dresser",
+    image: Image2,
+    currentPrice: 2520.00,
+    originalPrice: 3360.00,
+    discount: "25% off"
+  },
+  {
+    name: "Alessandra Nightstand",
+    image: Image3,
+    currentPrice: 866.25,
+    originalPrice: 1155.00,
+    discount: "25% off"
+  },
+  {
+    name: "Serena Wood Lounge Chair",
+    image: Image5,
+    currentPrice: 1143.75,
+    originalPrice: 1525.00,
+    discount: "25% off"
+  },
+  {
+    name: "Modern Platform Bed",
+    image: Image4,
+    currentPrice: 1299.99,
+    originalPrice: 1699.99,
+    discount: "24% off"
+  },
+ 
+  {
+    name: "Mid-Century Console",
+    image: Image6,
+    currentPrice: 849.75,
+    originalPrice: 1133.00,
+    discount: "25% off"
+  }
+];
+
+function App() {
   const scrollContainerRef = useRef(null);
   
   const scrollLeft = () => {
@@ -39,30 +91,32 @@ function App({SecondSectionData}) {
             className="flex overflow-x-auto pb-6 scrollbar-hide snap-x snap-mandatory"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
-            {SecondSectionData.map((item, index) => (
+            {furnitureItems.map((item, index) => (
               <div key={index} className="flex-none w-64 mx-3 snap-start">
                 <div className="group">
                   <div className="relative mb-4">
                     <img 
-                      src={item.url} 
-                      alt={item.title}
+                      src={item.image} 
+                      alt={item.name}
                       className="w-full aspect-[4/3] object-cover object-center bg-gray-100 rounded"
                     />
                   </div>
                   
                   <div className="space-y-1">
                     <h3 className="text-[15px] leading-tight text-gray-900 hover:text-gray-600 transition-colors duration-200">
-                      {item.title}
+                      {item.name}
                     </h3>
                     <div className="flex flex-wrap items-baseline gap-x-1.5 text-[13px]">
-                      {/* {item.prefix && (
+                      {item.prefix && (
                         <span className="text-gray-900">From</span>
-                      )} */}
-                     
-                      <span className="text-gray-500 ">
-                        ${item.price}
+                      )}
+                      <span className="text-red-600 font-medium">
+                        ${item.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </span>
-                      {/* <span className="text-gray-500">({item.discount})</span> */}
+                      <span className="text-gray-500 line-through">
+                        ${item.originalPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </span>
+                      <span className="text-gray-500">({item.discount})</span>
                     </div>
                   </div>
                 </div>

@@ -6,6 +6,7 @@ import Cart from "./cart";
 import sendRequest from "../../Utils/apirequest";
 import useProfileAuthStore from "../../Zustand/profileAuthStore";
 import toast from "react-hot-toast";
+import Logo from "./../../Assets/fabb_logo.jpg"
 
 const Navbar = () => {
   const user = useProfileAuthStore((state) => state.isLoggedIn);
@@ -97,7 +98,8 @@ const Navbar = () => {
           {/* Logo - Centered on mobile */}
           <div className="text-xl md:text-2xl font-bold">
             <a href="/" className="flex items-center space-x-2">
-              Company name
+              <img src={Logo} alt="Logo" className="h-12" />
+              
             </a>
           </div>
 
