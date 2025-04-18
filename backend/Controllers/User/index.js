@@ -104,19 +104,37 @@ export const addToWishlist = async (req, res) => {
     }
 };
 
-// Get Wishlist
 export const getWishlist = async (req, res) => {
     try {
         const userId = req.user.id;
+
+        // Find the wishlist and populate
         const wishlist = await Wishlist.findOne({ userId }).populate('items.productId');
 
         if (!wishlist) {
-            return res.status(404).json({ error: 'Wishlist not found' });
+            // It's okay if a user doesn't have a wishlist yet, return empty
+            return res.status(200).json({ userId, items: [] });
+            // Or return 404 if you prefer:
+            // return res.status(404).json({ error: 'Wishlist not found' });
         }
 
-        res.status(200).json(wishlist);
+        // --- Optional Filtering Step ---
+        // Filter out items where population resulted in null (product deleted)
+        const validItems = wishlist.items.filter(item => item.productId !== null);
+        // --- End Filtering Step ---
+
+        // Return the wishlist object with only valid items
+        res.status(200).json({
+            _id: wishlist._id,
+            userId: wishlist.userId,
+            items: validItems, // Send the filtered list
+            createdAt: wishlist.createdAt,
+            updatedAt: wishlist.updatedAt
+        });
+
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error("Error in getWishlist:", error);
+        res.status(500).json({ error: error.message || 'Internal server error' });
     }
 };
 
@@ -165,7 +183,38 @@ export const addToCart = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+// Update Cart
+export const updateCart = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { isAdd } = req.body;
+        const userId = req.user.id;
 
+        const cart = await Cart.findOne({ userId });
+        if (!cart) {
+            return res.status(404).json({ error: 'Cart not found' });
+        }
+
+        const itemIndex = cart.items.findIndex(item => item.productId.toString() === id);
+        if (itemIndex === -1) {
+            return res.status(404).json({ error: 'Item not found in cart' });
+        }
+
+        if (isAdd) {
+            cart.items[itemIndex].quantity += 1;
+        } else {
+            cart.items[itemIndex].quantity -= 1;
+            if (cart.items[itemIndex].quantity <= 0) {
+                cart.items.splice(itemIndex, 1); // Remove item if quantity is 0 or less
+            }
+        }
+
+        await cart.save();
+        res.status(200).json({ message: 'Cart updated successfully', cart });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
 // Get Cart
 export const getCart = async (req, res) => {
     try {

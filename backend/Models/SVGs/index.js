@@ -18,14 +18,46 @@ const SvgSchema = new Schema(
             type: String,
             required: true,
         },
+        typeoffile: {
+            type: String,
+            enum: ['svg','tiff', 'png', 'jpg'],
+            default: 'svg',
+        },
         slug: {
             type: String,
             required: true,
             unique: true,
         },
         url: {
-            type: String,
+            type: [String],
             required: true,
+          default: [],
+        },
+      
+        isfeatured: {
+            type: Boolean,
+            default: false,
+        },
+        editablecolors: {
+            type: [String],
+            default: [],
+        },
+        isvisible: {
+            type: Boolean,
+            default: true,
+        },
+        isbanner:
+        {
+            type: Boolean,
+            default: false,
+        },
+        instagram_link: {
+            type: String,
+            default: null,
+        },
+        featureOnInstagram: {
+            type: Boolean,
+            default: false,
         },
         createdAt: {
             type: Date,
@@ -43,7 +75,7 @@ const SvgSchema = new Schema(
 
 SvgSchema.pre('save', function (next) {
     if (!this.slug) {
-        this.slug = slugify(this.name, {
+        this.slug = slugify(this.title, {
             lower: true, 
             strict: true, 
         });
