@@ -416,7 +416,7 @@ export function AdminUpload() {
                           type="file"
                           ref={fileInputRef}
                           className="sr-only"
-                          accept=".svg,.png"
+                          accept=".svg,.png,.jpg"
                           onChange={handleFileChange}
                           multiple
                           required
