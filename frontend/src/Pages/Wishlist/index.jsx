@@ -59,7 +59,7 @@ export function Wishlist() {
         console.log('Move to cart:', items);
     };
 
-    const selectedItemsList = Items.filter(item => selectedItems.has(item.productId._id));
+    const selectedItemsList = Items.filter(item => selectedItems.has(item?._id));
 
     return (
         <>
@@ -82,9 +82,12 @@ export function Wishlist() {
                             {Items.map((item) => (
                                 <div
                                     key={item.id} className="group relative">
+                            {
+                                console.log(item, "item")
+                            }
                                     <div className="relative aspect-square mb-4">
                                         <img
-                                            src={item.productId.url}
+                                            src={item.productId.url[0]}
                                             alt={item.productId.title}
                                             className="w-full h-full object-cover rounded-sm"
                                         />

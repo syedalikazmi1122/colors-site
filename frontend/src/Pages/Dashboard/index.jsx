@@ -38,7 +38,7 @@ function AccountLayout() {
       case "password":
         return <ChangePassword />
       case "wishlist":
-        return <Wishlist />
+        return (window.location.href = "/wishlist")
       default:
         return <AccountInformation  />
     }

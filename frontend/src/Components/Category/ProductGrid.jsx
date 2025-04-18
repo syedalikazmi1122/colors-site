@@ -3,7 +3,7 @@ export function ProductGrid({ categoryData }) {
     id: item.id,
     name: item.title,
     price: item.price,
-    image: item.url,
+    image: item.url[0]||item.url,
     slug: item.slug,
   }));
 

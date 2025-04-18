@@ -27,7 +27,7 @@ const CustomSamples = () => {
               to sample up to 8 colors in your home.
             </p>
   
-            <button className="text-white px-4 sm:px-6 py-2 sm:py-3 text-sm tracking-wider bg-emerald-700 hover:bg-[#297e52] transition-colors font-serif">
+            <button className="text-white px-4 sm:px-6 py-2 sm:py-3 text-sm tracking-wider bg-black hover:ring-offset-black transition-colors font-serif">
               SHOP NOW
             </button>
   

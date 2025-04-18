@@ -27,7 +27,7 @@ const BedroomRefresh = () => {
             <h3 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl uppercase font-serif text-gray-900">BEDROOM</h3>
           </div>
 
-          <button className="bg-emerald-700 hover:bg-emerald-800 text-white px-4 sm:px-6 py-2 sm:py-3 text-sm tracking-wider transition-colors font-serif">
+          <button className="bg-gray-800 hover:bg-black text-white px-4 sm:px-6 py-2 sm:py-3 text-sm tracking-wider transition-colors font-serif">
             SHOP NOW
           </button>
 
@@ -38,7 +38,7 @@ const BedroomRefresh = () => {
               className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full object-cover"
             />
             <div>
-              <p className="text-xs sm:text-sm text-gray-800 font-serif">
+              <p className="text-xs   sm:text-sm text-gray-800 font-serif">
                 "Bedroom wall got an upgrade and I am so happy with it!! Check out this gorgeous wallpaper from Love Vs
                 Design - super easy to install and great quality."
               </p>
@@ -47,8 +47,8 @@ const BedroomRefresh = () => {
           </div>
 
           <div className="mt-4 md:mt-6">
-            <h4 className="text-xs sm:text-sm text-gray-800 mb-2 md:mb-4 font-serif">GRACIE'S CUSTOM COLORS</h4>
-            <div className="flex flex-wrap gap-3 md:gap-4">
+            {/* <h4 className="text-xs sm:text-sm text-gray-800 mb-2 md:mb-4 font-serif">GRACIE'S CUSTOM COLORS</h4> */}
+            {/* <div className="flex flex-wrap gap-3 md:gap-4">
               {colors.map((color) => (
                 <div key={color.name} className="flex flex-col items-center">
                   <div
@@ -58,7 +58,7 @@ const BedroomRefresh = () => {
                   <span className="text-xs mt-1 md:mt-2 text-gray-700 font-serif">{color.name}</span>
                 </div>
               ))}
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

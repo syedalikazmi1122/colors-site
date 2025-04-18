@@ -13,7 +13,7 @@ export default function LandingPage() {
     <>
       <Navbar />
       <TopSection />
-      <SecondSection/>
+      <SecondSection/> 
       <ThirdSection/>
       <EmailSignup/>
       {/* <LargeSamples/> */}

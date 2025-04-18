@@ -9,6 +9,7 @@ import Dashboard from "./Pages/Dashboard/index.jsx";
 import { AdminUpload } from "./Pages/UploadSVG/index.jsx";
 import useProfileAuthStore from "./Zustand/profileAuthStore.js";
 import { Wishlist } from "./Pages/Wishlist/index.jsx";
+import { AdminDashboard } from "./Pages/admindashboard/index.jsx";
 
 function App() {
   const user = useProfileAuthStore((state) => state.isLoggedIn);
@@ -31,8 +32,12 @@ function App() {
             element={user ? <Dashboard /> : <Navigate to="/login" replace />}
           />
           <Route
-            path="/admin"
+            path="/admin/upload"
             element={user && role === "admin" ? <AdminUpload /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/admin-dashboard"
+            element={user && role === "admin" ? <AdminDashboard /> : <Navigate to="/login" replace />}
           />
           <Route path="/products/:slug" element={<ProductInfo />} />
           <Route path="WishList" element={<Wishlist/>} />
