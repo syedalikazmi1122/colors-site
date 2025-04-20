@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Heart, Star, X } from 'lucide-react';
-import Navbar from '../../Components/Navbar';
-import Footer from '../../Components/Footer';
-import sendRequest from '../../Utils/apirequest'; // Assuming this handles auth etc.
+import Navbar from '../../Components/Navbar'; // Adjust path as needed
+import Footer from '../../Components/Footer'; // Adjust path as needed
+import sendRequest from '../../Utils/apirequest'; // Adjust path as needed
 import { useParams } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -20,9 +20,11 @@ const colorPaletteOptions = [
     { name: 'rose', label: 'Rose', color: '#D8B8C4'},
     { name: 'terracotta', label: 'Terracotta', color: '#B47A5B'},
     { name: 'gold', label: 'Gold', color: '#C1A36F'},
+    // Add more colors as needed
 ];
 // --- --- ---
 
+// Helper function to escape characters for Regex, especially for color codes
 const escapeRegExp = (string) => {
     if (typeof string !== 'string') {
         console.warn("escapeRegExp received non-string input:", string);
@@ -36,13 +38,17 @@ const escapeRegExp = (string) => {
 export function ProductInfo() {
   const { slug } = useParams();
   const [product, setProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true); // Overall product loading
+  const [error, setError] = useState(null);     // Overall product error
 
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [svgContent, setSvgContent] = useState(null);
-  const [modifiedSvgContent, setModifiedSvgContent] = useState(null);
-  const [loadingSvg, setLoadingSvg] = useState(false);
+  const [svgContent, setSvgContent] = useState(null); // Stores original fetched SVG text
+  const [modifiedSvgContent, setModifiedSvgContent] = useState(null); // Stores color-modified SVG text
+  const [loadingSvg, setLoadingSvg] = useState(false); // Specific to SVG fetch/parse
+  const [svgError, setSvgError] = useState(null);       // Specific to SVG errors
+
+  // State for tracking standard image loading (non-SVG)
+  const [loadingStandardImage, setLoadingStandardImage] = useState(false);
 
   const [selectedUserColors, setSelectedUserColors] = useState({});
   const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
@@ -59,14 +65,17 @@ export function ProductInfo() {
       setSvgContent(null);
       setModifiedSvgContent(null);
       setSelectedUserColors({});
-      setLoadingSvg(false); // Ensure SVG loading state is reset
+      setLoadingSvg(false);
+      setSvgError(null);
+      setLoadingStandardImage(false); // Reset standard image loading state
 
       try {
-        const response = await sendRequest('GET', `/svgs/${slug}`);
+        const response = await sendRequest('GET', `/svgs/${slug}`); // Ensure endpoint is correct
 
         if (response.status === 200 && response.data) {
           let fetchedProductData = {
             ...response.data,
+            // Ensure editablecolors and url are arrays even if missing or single value
             editablecolors: Array.isArray(response.data.editablecolors) ? response.data.editablecolors : [],
             url: Array.isArray(response.data.url) ? response.data.url : (response.data.url ? [response.data.url] : [])
           };
@@ -85,111 +94,129 @@ export function ProductInfo() {
           }
           // --- End Reordering ---
 
-          setProduct(fetchedProductData);
+          setProduct(fetchedProductData); // Set product state
 
-          // Fetch SVG content if the (potentially reordered) first image is a customizable SVG
-          if (
-            fetchedProductData.url.length > 0 &&
-            fetchedProductData.url[0]?.toLowerCase().endsWith('.svg') &&
-            fetchedProductData.editablecolors.length > 0
-          ) {
-            // Fetch SVG for the *first* image (which is now guaranteed to be the SVG if one exists)
-            fetchSvg(fetchedProductData.url[0]);
+          // --- Initial Image Load ---
+          const firstImageUrl = fetchedProductData.url?.[0];
+          if (typeof firstImageUrl === 'string' && firstImageUrl.toLowerCase().endsWith('.svg')) {
+            // If it's an SVG, attempt to fetch its content
+            fetchSvg(firstImageUrl);
+          } else if (firstImageUrl) {
+             // If the first image is standard, set loading state for it
+             setLoadingStandardImage(true);
+             // The <img> tag's onLoad/onError will set it back to false later
+          } else {
+            // No images available
+            console.warn("Product loaded but has no image URLs.");
           }
+
         } else {
           throw new Error(response.data?.message || `Product not found or failed to load (Status: ${response.status})`);
         }
       } catch (err) {
         console.error('Error fetching product:', err);
-        setError(err.message || 'Failed to load product details.');
-        toast.error(err.message || 'Failed to load product.');
+        const errorMsg = err.message || 'Failed to load product details.';
+        setError(errorMsg);
+        toast.error(errorMsg);
       } finally {
-        setLoading(false);
+        setLoading(false); // Overall product loading finished
       }
     };
     fetchProduct();
-  }, [slug]); // Dependency: slug changes -> refetch
+  }, [slug]); // Dependency: slug
 
   // --- Fetch SVG Content ---
   const fetchSvg = useCallback(async (url) => {
-    console.log("Attempting to fetch SVG from URL:", url); // Keep for debugging if needed
-    if (!url) {
-        console.warn("fetchSvg called with no URL");
-        return;
+    if (!url || typeof url !== 'string') {
+      console.warn("fetchSvg called with invalid URL:", url);
+      setSvgError("Invalid SVG URL provided.");
+      setLoadingSvg(false);
+      setSvgContent(null);
+      setModifiedSvgContent(null);
+      return;
     }
+    console.log("Attempting to fetch SVG from URL:", url);
     setLoadingSvg(true);
     setSvgContent(null);
     setModifiedSvgContent(null);
-    setSelectedUserColors({});
+    // Don't reset selectedUserColors here, allow edits across SVG reloads if desired, reset on thumbnail click instead
+    setSvgError(null); // Clear previous SVG errors
+
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, { cache: 'no-cache' }); // Added no-cache for potential testing/debugging
       const svgText = await response.text();
 
-      // Optional: Log raw text only if debugging is necessary
-      // console.log("Raw fetched text received (first 200 chars):", svgText.substring(0, 200));
-
       if (!response.ok) {
-          // Provide more context in the error message if possible
-          throw new Error(`Failed to fetch SVG (${response.status} ${response.statusText} from ${url}). Response preview: ${svgText.substring(0,100)}`);
+        // Log more details on fetch failure
+        console.error(`Failed to fetch SVG (${response.status} ${response.statusText}) from ${url}. Response text (start):`, svgText.substring(0, 200));
+        throw new Error(`Server returned ${response.status} ${response.statusText}`);
       }
 
-      // --- THIS IS THE CORRECTED VALIDATION ---
-      // Check if the string contains '<svg' tag (case-insensitive) after trimming
-      if (!/<svg/i.test(svgText.trim())) {
-          console.error("SVG validation failed. Text did not contain '<svg'. Received:", svgText.substring(0, 200)); // Log what was received
+      // --- CORRECTED SVG VALIDATION ---
+      // Check if the string CONTAINS '<svg' (case-insensitive) after trimming
+      const trimmedText = svgText.trim();
+      if (!/<svg/i.test(trimmedText)) {
+          console.error("SVG validation failed. Text did not contain '<svg'. Received (start):", trimmedText.substring(0, 200));
           throw new Error('Fetched content does not appear to be a valid SVG.');
       }
       // --- END CORRECTION ---
 
-      setSvgContent(svgText); // Set content if validation passes
+      console.log("SVG fetched and validated successfully.");
+      setSvgContent(trimmedText); // Set original content
 
     } catch (error) {
-      console.error('Error fetching or processing SVG:', error);
-      // Ensure the error message shown to the user is helpful but not overly technical
-      toast.error(`Could not load SVG preview: ${error.message.split('.')[0]}`); // Show simpler error
-      setSvgContent(null); // Clear on error
+      console.error('Detailed Error fetching/processing SVG:', error);
+      // Construct a more informative error message
+      const errorMessage = `Could not load SVG preview. ${error.message || 'Unknown error'}.`;
+      setSvgError(errorMessage); // Set specific SVG error state
+      toast.error(`Error loading SVG: ${error.message.split('.')[0]}`); // Keep toast simple
+      setSvgContent(null); // Ensure content is null on error
     } finally {
-      setLoadingSvg(false);
+      setLoadingSvg(false); // Ensure loading state is turned off
     }
-  }, []); // Dependencies remain empty if fetchSvg doesn't rely on component state/props directly
+  }, []); // Empty dependency array is correct
+
   // --- Determine if the CURRENTLY selected image allows customization ---
   const isCurrentSelectionCustomizable = useCallback(() => {
-    if (!product || !product.url || product.url.length === 0) {
-      return false;
-    }
-    const currentUrl = product.url[selectedImageIndex];
+    // Requires product, loaded svgContent, and editable colors defined
     return (
-      currentUrl &&
-      currentUrl.toLowerCase().endsWith('.svg') &&
-      product.editablecolors &&
-      product.editablecolors.length > 0 &&
-      svgContent !== null // Crucially, the SVG content must be loaded
+      product?.editablecolors?.length > 0 &&
+      svgContent !== null && // Base SVG must be loaded
+      !svgError && // And no SVG loading error
+      product.url?.[selectedImageIndex]?.toLowerCase().endsWith('.svg') // Current must be SVG url
     );
-  }, [product, selectedImageIndex, svgContent]); // Depends on these states
+  }, [product, selectedImageIndex, svgContent, svgError]); // Added svgError dependency
 
   // --- Handle Thumbnail Clicks ---
   const handleThumbnailClick = useCallback((index) => {
     if (index === selectedImageIndex || !product || !product.url || index >= product.url.length) return;
 
+    console.log(`Thumbnail ${index} clicked. URL: ${product.url[index]}`);
     setSelectedImageIndex(index);
 
-    // Immediately reset SVG state for the new selection
+    // Reset states specific to the main image display
     setSvgContent(null);
     setModifiedSvgContent(null);
-    setSelectedUserColors({}); // Reset colors when switching images
+    setLoadingSvg(false);
+    setSvgError(null);
+    setLoadingStandardImage(false);
+    setSelectedUserColors({}); // Reset user colors when switching images
 
-    // Check if the NEWLY selected image is a customizable SVG
     const newUrl = product.url[index];
-    const isNewSelectionSvg = newUrl && newUrl.toLowerCase().endsWith('.svg');
-    const hasEditableColors = product.editablecolors && product.editablecolors.length > 0;
 
-    if (isNewSelectionSvg && hasEditableColors) {
-      fetchSvg(newUrl); // Fetch its content if it's a customizable SVG
+    // If the NEWLY selected image is an SVG, attempt to fetch it.
+    if (typeof newUrl === 'string' && newUrl.toLowerCase().endsWith('.svg')) {
+        console.log("New selection is SVG, fetching...");
+        fetchSvg(newUrl); // Fetch its content
+    } else if (newUrl) {
+        // If it's a standard image, set its loading flag
+        console.log("New selection is standard image, setting loading flag.");
+        setLoadingStandardImage(true);
+        // Actual loading is handled by the <img> tag changing src
     } else {
-      // If it's not a customizable SVG (or not an SVG at all), ensure loading state is false
-      setLoadingSvg(false);
+        console.log("New selection has no valid URL.");
     }
-  }, [selectedImageIndex, product, fetchSvg]); // Added fetchSvg dependency
+  }, [selectedImageIndex, product, fetchSvg]); // Keep fetchSvg dependency
 
 
   // --- Apply User Color Changes to SVG Content ---
@@ -215,22 +242,22 @@ export function ProductInfo() {
         if (!escapedOriginalColor) continue;
 
         // Regex for attributes like fill="#...", stroke='#...', stop-color="..."
-        // Added '#' optionality in case colors are specified without it sometimes (though less common)
+        // Added '#' optionality for robustness, case-insensitive matching
         const attributeRegex = new RegExp(
             `(fill|stroke|stop-color)\\s*=\\s*(["'])\\s*#?${escapedOriginalColor}\\s*\\2`,
-            'gi'
+            'gi' // global and case-insensitive
         );
         currentSvg = currentSvg.replace(attributeRegex, (match, attribute, quote) => {
-            // Ensure the replacement includes the hash if the new color needs it
+            // Ensure the replacement includes the hash
             const formattedNewColor = newUserColorValue.startsWith('#') ? newUserColorValue : `#${newUserColorValue}`;
             return `${attribute}=${quote}${formattedNewColor}${quote}`;
         });
 
         // Regex for style="..." attributes like style="...; fill: #... ; ..."
-        // Added '#' optionality here too
+        // Added '#' optionality, case-insensitive matching
         const styleRegex = new RegExp(
             `(fill|stroke|stop-color):\\s*#?${escapedOriginalColor}\\s*(;?)`,
-            'gi'
+            'gi' // global and case-insensitive
         );
         currentSvg = currentSvg.replace(styleRegex, (match, property, semicolon) => {
             const formattedNewColor = newUserColorValue.startsWith('#') ? newUserColorValue : `#${newUserColorValue}`;
@@ -238,8 +265,6 @@ export function ProductInfo() {
         });
     }
 
-    // console.log("Original SVG:", svgContent); // DEBUG
-    // console.log("Modified SVG:", currentSvg); // DEBUG
     setModifiedSvgContent(currentSvg);
 
   }, [svgContent, selectedUserColors]);
@@ -247,11 +272,11 @@ export function ProductInfo() {
 
   // --- Effect to trigger SVG update when selections or content change ---
   useEffect(() => {
-    // Update display only if the current image is meant to be customizable *and* the base SVG is loaded
+    // Update display only if the current image is meant to be customizable *and* the base SVG is loaded without error
     if (isCurrentSelectionCustomizable()) {
         updateSvgDisplay();
     } else {
-        // If not customizable (e.g., switched to PNG, or SVG not loaded yet), ensure modified content is cleared.
+        // If not customizable (e.g., switched to PNG, or SVG not loaded yet/error), ensure modified content is cleared.
         setModifiedSvgContent(null);
     }
   }, [selectedUserColors, svgContent, isCurrentSelectionCustomizable, updateSvgDisplay]); // Dependencies
@@ -263,11 +288,11 @@ export function ProductInfo() {
 
     setSelectedUserColors((prev) => ({
       ...prev,
-      [activeEditableColor]: newUserColorOption.color,
+      [activeEditableColor]: newUserColorOption.color, // Store the hex value
     }));
 
     setIsColorPickerOpen(false);
-    setActiveEditableColor(null);
+    setActiveEditableColor(null); // Clear active color after selection
   };
 
   // --- Open Color Picker ---
@@ -279,16 +304,26 @@ export function ProductInfo() {
   // --- Add to Cart / Wishlist --- (Simple versions)
    const addToCart = async () => {
     if (!product) return;
+    toast.loading('Adding to cart...'); // Give user feedback
     try {
         // FUTURE: Send customization data if needed
+        // Consider if you want to send the modified SVG or just the selected colors
         // const customizationData = modifiedSvgContent ? { svgData: modifiedSvgContent } : { selectedColors: selectedUserColors };
-        const response = await sendRequest('POST', '/cart', { productId: product._id, quantity: 1 /*, customization: customizationData */ });
+        const payload = {
+            productId: product._id,
+            quantity: 1,
+            // ...(Object.keys(selectedUserColors).length > 0 && { customization: selectedUserColors }) // Example: sending selected colors
+        };
+        const response = await sendRequest('POST', '/cart', payload); // Adjust endpoint as needed
+        toast.dismiss(); // Dismiss loading toast
         if (response.status === 200 || response.status === 201) {
             toast.success('Added to cart!');
+            // Optionally update cart count in Navbar here
         } else {
             throw new Error(response.data?.message || 'Error adding to cart');
         }
     } catch (err) {
+        toast.dismiss(); // Dismiss loading toast
         toast.error(`Add to Cart failed: ${err.message}`);
         console.error('Add to Cart error:', err);
     }
@@ -296,34 +331,49 @@ export function ProductInfo() {
 
    const addToWishlist = async () => {
      if (!product) return;
+     toast.loading('Adding to wishlist...');
      try {
-        const response = await sendRequest('POST', '/wishlist', { productId: product._id });
+        const response = await sendRequest('POST', '/wishlist', { productId: product._id }); // Adjust endpoint as needed
+        toast.dismiss();
         if (response.status === 200 || response.status === 201) {
             toast.success('Added to wishlist!');
+            // Optionally update wishlist icon state
         } else {
             throw new Error(response.data?.message || 'Error adding to wishlist');
         }
      } catch (err) {
+        toast.dismiss();
         toast.error(`Add to Wishlist failed: ${err.message}`);
         console.error('Add to Wishlist error:', err);
      }
    };
 
   // --- Render Logic ---
-  if (loading && !product) { // Show loading only initially
+  // Initial Product Loading State
+  if (loading && !product) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <p>Loading Product...</p> {/* Replace with spinner */}
-      </div>
+      <>
+        <Navbar />
+        <div className="flex justify-center items-center min-h-[60vh]">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-rose-600"></div>
+          <p className="ml-4 text-gray-600 text-lg">Loading Product...</p>
+        </div>
+        <Footer />
+      </>
     );
   }
 
+  // Product Loading Error State
   if (error || !product) {
     return (
       <>
         <Navbar />
-        <div className="flex justify-center items-center min-h-[60vh] px-4">
-          <p className="text-center text-red-600">{error || 'Product not found.'}</p>
+        <div className="flex flex-col justify-center items-center min-h-[60vh] px-4 text-center">
+          <div className="bg-red-100 p-4 rounded-full mb-4">
+             <X className="w-10 h-10 text-red-500" />
+          </div>
+          <h2 className="text-xl font-semibold mb-2 text-gray-800">Error Loading Product</h2>
+          <p className="text-red-600 max-w-md">{error || 'Product data could not be retrieved. Please try refreshing the page or contact support.'}</p>
         </div>
         <Footer />
         <Toaster position="bottom-right" />
@@ -331,171 +381,199 @@ export function ProductInfo() {
     );
   }
 
-  // Determine if the current image is an SVG, regardless of customization possibility
+  // --- Determine current image properties for rendering ---
   const currentImageUrl = product.url?.[selectedImageIndex];
   const isCurrentSvg = typeof currentImageUrl === 'string' && currentImageUrl.toLowerCase().endsWith('.svg');
-  // Determine if the customization UI should be shown (requires loaded SVG and editable colors)
-  const showCustomizationControls = isCurrentSelectionCustomizable();
+  // Use the dedicated state for SVG errors
+  const hasSvgLoadError = svgError !== null;
+  // Show customization controls only if allowed AND the base SVG is loaded without error
+  const showCustomizationControls = isCurrentSelectionCustomizable(); // Relies on the updated definition
 
 
   return (
     <>
       <Navbar />
-      <div className="mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-12"> {/* Added max-width */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 lg:gap-16"> {/* Increased gap */}
           {/* Product Images Section */}
           <div className="flex flex-col md:flex-row-reverse lg:flex-row gap-4">
             {/* Thumbnails Column */}
              <div className="flex flex-row md:flex-col md:w-24 gap-2 overflow-x-auto md:overflow-x-hidden md:overflow-y-auto py-2 md:py-0 md:max-h-[500px] lg:max-h-[600px] order-first md:order-last lg:order-first">
-              {product.url.map((imageUrl, index) => {
-                 const isThumbSvg = typeof imageUrl === 'string' && imageUrl.toLowerCase().endsWith('.svg');
-                 const isThumbCustomizable = isThumbSvg && product.editablecolors?.length > 0;
-                 return (
-                      <button
-                        key={index}
-                        onClick={() => handleThumbnailClick(index)}
-                        className={`relative flex-shrink-0 w-16 h-16 md:w-20 md:h-20 border-2 ${
-                          selectedImageIndex === index ? 'border-rose-600 ring-2 ring-rose-300' : 'border-gray-200'
-                        } rounded-md overflow-hidden transition-all hover:border-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-1`}
-                        aria-label={`View image ${index + 1}${isThumbCustomizable ? ' (customizable)' : ''}`}
-                        aria-current={selectedImageIndex === index ? 'true' : 'false'}
-                      >
-                        {/* Use a placeholder or specific thumbnail logic if available */}
-                        <img
-                          src={imageUrl || '/placeholder.svg'} // Ensure imageUrl is valid
-                          alt={`${product.title} thumbnail ${index + 1}`}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                          onError={(e) => {
-                            // Handle broken image links for thumbnails
-                            e.currentTarget.src = '/placeholder-broken.svg'; // Or some indication of error
-                            e.currentTarget.style.objectFit = 'contain';
-                          }}
-                        />
-                        {isThumbCustomizable && (
-                            <span className="absolute bottom-0 right-0 bg-rose-600 text-white text-[8px] px-1 rounded-tl-md font-semibold">EDIT</span>
-                        )}
-                      </button>
-                 );
-              })}
+              {product.url && product.url.length > 0 ? (
+                  product.url.map((imageUrl, index) => {
+                     const isThumbSvg = typeof imageUrl === 'string' && imageUrl.toLowerCase().endsWith('.svg');
+                     // Indicate customization potential based on product data, not current load state
+                     const isThumbPotentiallyCustomizable = isThumbSvg && product.editablecolors?.length > 0;
+                     return (
+                          <button
+                            key={`${slug}-thumb-${index}`} // More specific key
+                            onClick={() => handleThumbnailClick(index)}
+                            className={`relative flex-shrink-0 w-16 h-16 md:w-20 md:h-20 border-2 ${
+                              selectedImageIndex === index ? 'border-rose-600 ring-2 ring-rose-300' : 'border-gray-200 hover:border-gray-400'
+                            } rounded-md overflow-hidden transition-all focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-1 shadow-sm`}
+                            aria-label={`View image ${index + 1}${isThumbPotentiallyCustomizable ? ' (customizable)' : ''}`}
+                            aria-current={selectedImageIndex === index ? 'true' : 'false'}
+                          >
+                            <img
+                              src={imageUrl || '/placeholder.svg'} // Fallback placeholder
+                              alt={`${product.title} thumbnail ${index + 1}`}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                              onError={(e) => {
+                                // Handle broken image links for thumbnails
+                                e.currentTarget.src = '/placeholder-broken.svg'; // Or some indication of error
+                                e.currentTarget.style.objectFit = 'contain';
+                              }}
+                            />
+                            {isThumbPotentiallyCustomizable && (
+                                <span className="absolute bottom-0 right-0 bg-rose-600 text-white text-[9px] px-1.5 py-0.5 rounded-tl-md font-semibold shadow-sm">EDIT</span>
+                            )}
+                          </button>
+                     );
+                  })
+              ) : (
+                <div className="text-xs text-gray-500 w-full text-center md:text-left">No images</div>
+              )}
             </div>
 
-          
-            <div className="flex-1 relative border rounded-lg bg-gray-50 overflow-hidden order-last md:order-first lg:order-last">
-  {/* SVG Display Container with consistent height */}
-  <div className="w-full aspect-square flex items-center justify-center">
-    {/* Loading state for SVG content */}
-    {loadingSvg ? (
-      <div className="flex flex-col items-center justify-center h-full w-full">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600"></div>
-        <p className="mt-4 text-gray-500">Loading preview...</p>
-      </div>
-    ) : modifiedSvgContent && showCustomizationControls ? (
-      // Render MODIFIED SVG with better sizing constraints
-      <div 
-        className="w-full h-full flex items-center justify-center p-4"
-        dangerouslySetInnerHTML={{ __html: modifiedSvgContent }}
-        aria-label="Customized design preview"
-        aria-live="polite"
-        role="img"
-      />
-    ) : isCurrentSvg && svgContent ? (
-      // Render ORIGINAL SVG with consistent styling as modified one
-      <div
-        className="w-full h-full flex items-center justify-center p-4"
-        dangerouslySetInnerHTML={{ __html: svgContent }}
-        aria-label="Original design preview"
-        role="img"
-      />
-    ) : isCurrentSvg && !svgContent && !loadingSvg ? (
-      // Error state with better visual feedback
-      <div className="flex flex-col items-center justify-center h-full w-full p-6 text-center">
-        <div className="rounded-full bg-red-100 p-3 mb-3">
-          <X className="w-6 h-6 text-red-500" />
-        </div>
-        <p className="text-red-500 font-medium mb-2">Could not load SVG preview</p>
-        <button 
-          onClick={() => fetchSvg(currentImageUrl)} 
-          className="text-blue-600 border border-blue-600 rounded-md px-4 py-2 hover:bg-blue-50 transition-colors"
-        >
-          Try Again
-        </button>
-      </div>
-    ) : currentImageUrl ? (
-      // Standard Image (PNG, JPG, etc.) with better handling
-      <img
-        src={currentImageUrl}
-        alt={`${product.title} - Image ${selectedImageIndex + 1}`}
-        className="max-w-full max-h-full object-contain"
-        onError={(e) => {
-          e.currentTarget.src = '/placeholder-broken.svg';
-          e.currentTarget.alt = 'Image failed to load';
-        }}
-      />
-    ) : (
-      // Empty state with better visual indication
-      <div className="flex flex-col items-center justify-center h-full w-full p-6">
-        <p className="text-gray-400">No image available</p>
-      </div>
-    )}
-  </div>
-  
-  {/* Optional: Add an indicator when color customization is available */}
-  {isCurrentSelectionCustomizable() && (
-    <div className="absolute top-2 right-2 bg-rose-600 text-white text-xs px-2 py-1 rounded-md font-medium">
-      Customizable
-    </div>
-  )}
-</div>
-                  </div>
+            {/* Main Image/SVG Display Area */}
+            <div className="flex-1 relative border rounded-lg bg-gray-50 overflow-hidden order-last md:order-first lg:order-last shadow-sm"> {/* Added shadow */}
+              <div className="w-full aspect-square flex items-center justify-center relative"> {/* Container for positioning */}
 
-                  {/* Product Details */}
+                {/* --- SVG Rendering Logic --- */}
+                {isCurrentSvg && (
+                   loadingSvg ? ( /* SVG Loading spinner */
+                     <div className="flex flex-col items-center justify-center h-full w-full text-center p-4">
+                       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600 mb-3"></div>
+                       <p className="text-sm text-gray-500">Loading preview...</p>
+                     </div>
+                   ) : hasSvgLoadError ? ( /* SVG Error display */
+                     <div className="flex flex-col items-center justify-center h-full w-full p-6 text-center">
+                       <div className="rounded-full bg-red-100 p-3 mb-3">
+                          <X className="w-6 h-6 text-red-500" />
+                       </div>
+                       <p className="text-red-600 font-medium mb-3 max-w-xs text-sm">
+                          {svgError || 'Could not load SVG preview'} {/* Display specific SVG error */}
+                       </p>
+                       <button
+                         onClick={() => fetchSvg(currentImageUrl)} // Retry fetching this specific SVG
+                         className="text-sm text-blue-600 border border-blue-600 rounded-md px-4 py-1.5 hover:bg-blue-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1"
+                       >
+                         Try Again
+                       </button>
+                     </div>
+                   ) : svgContent ? ( /* SVG Content (modified or original) */
+                     <div
+                        key={modifiedSvgContent ? 'modified' : 'original'} // Force re-render when switching between original/modified
+                        className="w-full h-full flex items-center justify-center p-4" // Padding for spacing
+                        dangerouslySetInnerHTML={{ __html: modifiedSvgContent || svgContent }}
+                        aria-label={modifiedSvgContent ? "Customized design preview" : "Original design preview"}
+                        aria-live="polite"
+                        role="img"
+                      />
+                   ) : ( /* Fallback if SVG content is null but no error/loading */
+                     <div className="p-6 text-center text-gray-400">
+                        <p>SVG Preview unavailable.</p>
+                     </div>
+                   )
+                )}
+
+                {/* --- Standard Image Rendering Logic --- */}
+                {!isCurrentSvg && currentImageUrl && (
+                  <>
+                    {/* Loading Indicator for Standard Image */}
+                    {loadingStandardImage && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50/80 backdrop-blur-sm z-10"> {/* Slight overlay */}
+                         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-500"></div>
+                         <p className="mt-3 text-sm text-gray-600">Loading image...</p>
+                      </div>
+                    )}
+                    {/* The Actual Image Tag */}
+                    <img
+                      key={currentImageUrl} // Force re-render on src change
+                      src={currentImageUrl}
+                      alt={`${product.title} - Image ${selectedImageIndex + 1}`}
+                      className={`max-w-full max-h-full object-contain transition-opacity duration-300 ease-in-out ${loadingStandardImage ? 'opacity-0' : 'opacity-100'}`} // Fade in
+                      // Reset loading state when image loads or errors
+                      onLoad={() => setLoadingStandardImage(false)}
+                      onError={(e) => {
+                        setLoadingStandardImage(false);
+                        e.currentTarget.src = '/placeholder-broken.svg'; // Use a specific broken image placeholder
+                        e.currentTarget.alt = 'Image failed to load';
+                        e.currentTarget.style.objectFit = 'contain';
+                      }}
+                      loading="lazy" // Helps with initial page load
+                      decoding="async" // Hint for browser
+                    />
+                  </>
+                )}
+
+                {/* Fallback if not SVG and no currentImageUrl */}
+                {!isCurrentSvg && !currentImageUrl && !loadingStandardImage && (
+                   <div className="flex flex-col items-center justify-center h-full w-full p-6 text-center">
+                     <p className="text-gray-400">No image available</p>
+                   </div>
+                )}
+
+              </div>
+              {/* Customization Indicator Badge */}
+              {showCustomizationControls && (
+                <div className="absolute top-2 right-2 bg-rose-600 text-white text-xs px-2 py-1 rounded-md font-medium shadow z-20">
+                  Customizable
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Product Details Section */}
           <div className="mt-6 lg:mt-0">
-            <h1 className="text-3xl md:text-4xl font-serif text-gray-800 mb-2">{product.title}</h1>
+            <h1 className="text-3xl md:text-4xl font-serif tracking-tight text-gray-900 mb-2">{product.title}</h1> {/* Adjusted font */}
             <div className="flex items-baseline gap-4 mb-4 md:mb-6">
-              <p className="text-lg md:text-xl font-semibold text-black">${product.price?.toFixed(2)}</p>
-              <p className="text-sm md:text-base text-gray-600">{product.category}</p>
+              <p className="text-xl md:text-2xl font-semibold text-gray-800">${product.price?.toFixed(2)}</p> {/* Adjusted size */}
+              <p className="text-sm md:text-base text-gray-500 uppercase tracking-wide">{product.category}</p> {/* Adjusted style */}
+            </div>
+
+            {/* Description */}
+            <div className="prose prose-sm sm:prose-base text-gray-700 mb-6 md:mb-8 max-w-none"> {/* Using prose for better text formatting */}
+               {product.description || <p className="italic">No description available.</p>}
             </div>
 
             <div className="space-y-6 md:space-y-8">
-              {/* Description - Moved slightly higher for better flow */}
-              <p className="text-gray-700 mb-6 md:mb-8 text-sm md:text-base leading-relaxed">
-                 {product.description || 'No description available.'}
-              </p>
-
               {/* Color Customization Section */}
-              {/* Show controls only if the current selected image is an SVG, has editable colors, AND the SVG content is loaded */}
               {showCustomizationControls && (
-                <div className="border-t pt-6">
+                <div className="border-t border-gray-200 pt-6">
                   <h2 className="text-lg md:text-xl font-medium text-gray-800 mb-4">Customize Colors:</h2>
-                  <div className="flex flex-wrap gap-3 md:gap-4">
+                  <div className="flex flex-wrap gap-3 md:gap-4 items-start"> {/* Align items start */}
                     {product.editablecolors.map((originalColor) => (
-                      <div key={originalColor} className="flex flex-col items-center text-center">
+                      <div key={originalColor} className="flex flex-col items-center text-center group"> {/* Added group for potential future use */}
                         <button
                           onClick={() => openColorPicker(originalColor)}
-                          className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-gray-300 hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-1 transition-all shadow-sm"
+                          className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-gray-300 hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2 transition-all shadow-sm mb-1" // Ring offset increased
                           style={{
+                            // Use the selected color if available, otherwise the original
                             backgroundColor: selectedUserColors[originalColor] || originalColor,
                           }}
-                          aria-label={`Change color: ${originalColor}`}
-                          title={`Click to change ${originalColor}`}
+                          aria-label={`Change color originally ${originalColor}`}
+                          title={`Current: ${selectedUserColors[originalColor] || originalColor}. Click to change.`}
                         />
-                         <span className="text-[10px] mt-1 text-gray-500 font-mono break-all max-w-[48px] md:max-w-[60px]" title={originalColor}>
-                              {originalColor}
+                         {/* Displaying the color hex code clearly */}
+                         <span className="text-[10px] md:text-[11px] font-mono text-gray-500 break-all max-w-[48px] md:max-w-[60px]" title={originalColor}>
+                              {selectedUserColors[originalColor] ? selectedUserColors[originalColor].toUpperCase() : originalColor.toUpperCase()}
+                              {selectedUserColors[originalColor] && selectedUserColors[originalColor] !== originalColor ? '*' : ''} {/* Indicate changed */}
                          </span>
                       </div>
                     ))}
                   </div>
-                   <p className="text-xs text-gray-500 mt-3">Click a circle above to change its color.</p>
+                   <p className="text-xs text-gray-500 mt-3 italic">Click a circle above to choose a new color. {Object.keys(selectedUserColors).length > 0 ? '(* indicates changed color)' : ''}</p>
                 </div>
               )}
 
               {/* Actions: Add to Cart / Wishlist */}
-              <div className="flex flex-col sm:flex-row w-full sm:w-3/4 mx-auto gap-3 border-t pt-6 mt-4"> {/* Adjusted width and added top margin */}
+              <div className="flex flex-col sm:flex-row gap-3 border-t border-gray-200 pt-6 mt-6"> {/* Adjusted spacing and border */}
                  <button
                     onClick={addToCart}
-                    className="flex-1 px-4 md:px-6 py-3 bg-gray-800 text-white font-medium rounded-md hover:bg-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 transition-colors text-sm md:text-base text-center disabled:opacity-60 disabled:cursor-not-allowed"
-                    disabled={loading || loadingSvg}
+                    className="flex-1 px-5 md:px-7 py-3 bg-gray-800 text-white font-semibold rounded-md hover:bg-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 transition-colors text-sm md:text-base text-center shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                    disabled={loading || loadingSvg || loadingStandardImage} // Disable during any loading
                  >
                     ADD TO CART - ${product.price?.toFixed(2)}
                  </button>
@@ -503,10 +581,10 @@ export function ProductInfo() {
                     onClick={addToWishlist}
                     title="Add to Wishlist"
                     aria-label="Add to Wishlist"
-                    className="flex items-center justify-center px-3 py-3 sm:py-0 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-1 transition-colors duration-200 disabled:opacity-60"
-                    disabled={loading}
+                    className="flex items-center justify-center p-3 bg-gray-100 border border-gray-200 rounded-md hover:bg-gray-200 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-1 transition-colors duration-200 disabled:opacity-60"
+                    disabled={loading} // Disable only during initial product load
                  >
-                    <Heart className="w-5 h-5 md:w-6 md:h-6 text-gray-600" />
+                    <Heart className="w-5 h-5 md:w-6 md:h-6 text-gray-700" /> {/* Slightly darker heart */}
                  </button>
               </div>
             </div>
@@ -516,62 +594,94 @@ export function ProductInfo() {
 
       {/* Color Picker Modal */}
       {isColorPickerOpen && activeEditableColor && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
-          <div className="bg-white p-5 md:p-6 rounded-lg shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col">
-            <div className="flex justify-between items-center mb-4 pb-3 border-b">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4 backdrop-blur-sm transition-opacity duration-300 ease-in-out">
+          <div className="bg-white p-5 md:p-6 rounded-lg shadow-xl w-full max-w-md max-h-[85vh] flex flex-col transform transition-all duration-300 ease-in-out scale-95 opacity-0 animate-fade-in-scale"> {/* Animation */}
+            {/* Modal Header */}
+            <div className="flex justify-between items-center mb-4 pb-3 border-b border-gray-200">
               <h3 className="text-base md:text-lg font-medium text-gray-800 flex items-center gap-2">
-                 <span>Pick New Color for:</span>
+                 <span>Pick Color for:</span>
+                 {/* Show the color being edited */}
                  <span
                      className="inline-block w-5 h-5 rounded-full border border-gray-400 shadow-sm"
                      style={{ backgroundColor: activeEditableColor }}
-                     title={activeEditableColor}
+                     title={`Original: ${activeEditableColor}`}
                   />
               </h3>
               <button
                 onClick={() => setIsColorPickerOpen(false)}
-                className="text-gray-400 hover:text-gray-700 transition-colors"
+                className="text-gray-400 hover:text-gray-600 transition-colors rounded-full p-1 focus:outline-none focus:ring-2 focus:ring-gray-400"
                 aria-label="Close color picker"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4 overflow-y-auto pr-2 flex-1">
+            {/* Color Options Grid */}
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 md:gap-4 overflow-y-auto pr-2 flex-1 -mr-2"> {/* Negative margin for scrollbar */}
+              {/* Palette Colors */}
               {colorPaletteOptions.map((colorOption) => (
                 <button
                   key={colorOption.name}
                   onClick={() => handleColorSelect(colorOption)}
-                  className="flex flex-col items-center space-y-1 p-2 hover:bg-gray-100 rounded group focus:outline-none focus:ring-2 focus:ring-rose-400 focus:bg-rose-50 transition-colors"
+                  className="flex flex-col items-center space-y-1.5 p-2 hover:bg-gray-100 rounded-md group focus:outline-none focus:ring-2 focus:ring-rose-400 focus:bg-rose-50 transition-all"
                   aria-label={`Select ${colorOption.label}`}
                 >
                   <div
-                    className="w-10 h-10 md:w-12 md:h-12 rounded-full border border-gray-200 shadow-sm group-hover:scale-105 transition-transform"
+                    className={`w-10 h-10 md:w-12 md:h-12 rounded-full border border-gray-200 shadow-sm group-hover:scale-105 transition-transform ${selectedUserColors[activeEditableColor] === colorOption.color ? 'ring-2 ring-offset-1 ring-rose-500' : ''}`} // Highlight selected
                     style={{ backgroundColor: colorOption.color }}
                   />
-                  <span className="text-xs md:text-sm text-gray-700 group-hover:text-rose-700">{colorOption.label}</span>
+                  <span className="text-xs md:text-sm text-gray-700 group-hover:font-medium">{colorOption.label}</span>
                 </button>
               ))}
-              {/* Revert Button */}
+              {/* Revert to Original Button */}
                <button
-                   key={`${activeEditableColor}-original`}
-                  onClick={() => handleColorSelect({ label: 'Original', color: activeEditableColor })}
-                  className="flex flex-col items-center space-y-1 p-2 hover:bg-gray-100 rounded group focus:outline-none focus:ring-2 focus:ring-rose-400 focus:bg-rose-50 transition-colors"
+                   key={`${activeEditableColor}-original`} // Unique key
+                  onClick={() => handleColorSelect({ label: 'Original', color: activeEditableColor })} // Pass original color back
+                  className="flex flex-col items-center space-y-1.5 p-2 hover:bg-gray-100 rounded-md group focus:outline-none focus:ring-2 focus:ring-rose-400 focus:bg-rose-50 transition-all"
                    aria-label={`Revert to original color ${activeEditableColor}`}
                >
                    <div
-                    className="w-10 h-10 md:w-12 md:h-12 rounded-full border border-gray-200 shadow-sm group-hover:scale-105 transition-transform relative flex items-center justify-center"
-                    style={{ backgroundColor: activeEditableColor }}
+                    className="w-10 h-10 md:w-12 md:h-12 rounded-full border border-gray-300 shadow-sm group-hover:scale-105 transition-transform relative flex items-center justify-center bg-cover bg-center" // Base styling
+                    style={{
+                        backgroundImage: `linear-gradient(45deg, rgba(0,0,0,0.1) 25%, transparent 25%, transparent 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1) 75%, transparent 75%, transparent)`, // Diagonal line pattern
+                        backgroundSize: '10px 10px', // Size of the pattern
+                        backgroundColor: activeEditableColor // The actual original color
+                     }}
                   >
-                     <span className="absolute inset-0 flex items-center justify-center text-[8px] font-semibold text-black opacity-60 mix-blend-overlay uppercase tracking-wider">Revert</span>
+                      {/* Optional: Text overlay instead of pattern */}
+                      {/* <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-black/60 mix-blend-overlay uppercase tracking-wider">Original</span> */}
                    </div>
-                   <span className="text-xs md:text-sm text-gray-700 group-hover:text-rose-700">Original</span>
+                   <span className="text-xs md:text-sm text-gray-700 group-hover:font-medium">Original</span>
                 </button>
             </div>
+            {/* Modal Footer (Optional) */}
+            {/* <div className="mt-4 pt-3 border-t border-gray-200 text-right"> ... </div> */}
           </div>
         </div>
       )}
 
-      <Toaster position="bottom-right" />
+      {/* Toast Notifications */}
+      <Toaster position="bottom-right" reverseOrder={false} />
       <Footer />
+
+      {/* Add Animation CSS (e.g., in your main CSS file or a style tag) */}
+      <style jsx global>{`
+        @keyframes fade-in-scale {
+          from {
+            opacity: 0;
+            transform: scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+        .animate-fade-in-scale {
+          animation: fade-in-scale 0.2s ease-out forwards;
+        }
+      `}</style>
     </>
   );
 }
+
+// If this is the main export of the file
+// export default ProductInfo; // Uncomment if needed based on your routing setup
