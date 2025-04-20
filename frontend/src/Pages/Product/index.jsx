@@ -6,33 +6,30 @@ import sendRequest from '../../Utils/apirequest'; // Assuming this handles auth 
 import { useParams } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
 
-// --- Predefined Color Palette for the Picker ---
-// These are the colors the user can CHOOSE FROM.
+// --- Predefined Color Palette ---
 const colorPaletteOptions = [
-  { name: 'white', label: 'White', color: '#FFFFFF' },
-  { name: 'black', label: 'Black', color: '#000000' },
-  { name: 'cream', label: 'Cream', color: '#F5E6D3' },
-  { name: 'sage', label: 'Sage', color: '#8BA89B' },
-  { name: 'sage-light', label: 'Light Sage', color: '#D1D9D1' },
-  { name: 'olive', label: 'Olive', color: '#8B9A7A' },
-  { name: 'blue', label: 'Ocean Blue', color: '#4A7081' },
-  { name: 'dusty-blue', label: 'Dusty Blue', color: '#92A5B2' },
-  { name: 'light-blue', label: 'Sky Blue', color: '#B8D0D8' },
-  { name: 'rose', label: 'Rose', color: '#D8B8C4'},
-  { name: 'terracotta', label: 'Terracotta', color: '#B47A5B'},
-  { name: 'gold', label: 'Gold', color: '#C1A36F'},
-  // Add more colors the user can pick from
+    { name: 'white', label: 'White', color: '#FFFFFF' },
+    { name: 'black', label: 'Black', color: '#000000' },
+    { name: 'cream', label: 'Cream', color: '#F5E6D3' },
+    { name: 'sage', label: 'Sage', color: '#8BA89B' },
+    { name: 'sage-light', label: 'Light Sage', color: '#D1D9D1' },
+    { name: 'olive', label: 'Olive', color: '#8B9A7A' },
+    { name: 'blue', label: 'Ocean Blue', color: '#4A7081' },
+    { name: 'dusty-blue', label: 'Dusty Blue', color: '#92A5B2' },
+    { name: 'light-blue', label: 'Sky Blue', color: '#B8D0D8' },
+    { name: 'rose', label: 'Rose', color: '#D8B8C4'},
+    { name: 'terracotta', label: 'Terracotta', color: '#B47A5B'},
+    { name: 'gold', label: 'Gold', color: '#C1A36F'},
 ];
 // --- --- ---
 
-// Helper to escape characters for regex
 const escapeRegExp = (string) => {
-    // Ensure input is a string before trying to replace
     if (typeof string !== 'string') {
         console.warn("escapeRegExp received non-string input:", string);
-        return ''; // Return empty string or handle as appropriate
+        return '';
     }
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+    // Escape characters relevant to CSS/SVG color values and regex special chars
+    return string.replace(/[.*+?^${}()|[\]\\#]/g, '\\$&');
 };
 
 
@@ -43,49 +40,61 @@ export function ProductInfo() {
   const [error, setError] = useState(null);
 
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [svgContent, setSvgContent] = useState(null); // Original SVG text content
-  const [modifiedSvgContent, setModifiedSvgContent] = useState(null); // SVG text with user changes applied
+  const [svgContent, setSvgContent] = useState(null);
+  const [modifiedSvgContent, setModifiedSvgContent] = useState(null);
   const [loadingSvg, setLoadingSvg] = useState(false);
 
-  // State for color customization
-  // Maps the original editable color to the user's chosen new color value
-  const [selectedUserColors, setSelectedUserColors] = useState({}); // e.g., { "#9ea5b0": "#FFFFFF", "#3d4b61": "#8BA89B" }
+  const [selectedUserColors, setSelectedUserColors] = useState({});
   const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
-  const [activeEditableColor, setActiveEditableColor] = useState(null); // The original color currently being changed via the picker
+  const [activeEditableColor, setActiveEditableColor] = useState(null);
 
   // --- Fetch Product Data ---
   useEffect(() => {
     const fetchProduct = async () => {
       setLoading(true);
       setError(null);
+      // Reset all relevant states
       setProduct(null);
       setSelectedImageIndex(0);
       setSvgContent(null);
       setModifiedSvgContent(null);
       setSelectedUserColors({});
+      setLoadingSvg(false); // Ensure SVG loading state is reset
 
       try {
-        // Use the slug to fetch the specific product
         const response = await sendRequest('GET', `/svgs/${slug}`);
 
         if (response.status === 200 && response.data) {
-          // **Data Validation/Normalization**
-          const fetchedProduct = {
+          let fetchedProductData = {
             ...response.data,
-            // Ensure editablecolors is an array, default to empty if missing/null/not array
             editablecolors: Array.isArray(response.data.editablecolors) ? response.data.editablecolors : [],
-            // Ensure url is an array
             url: Array.isArray(response.data.url) ? response.data.url : (response.data.url ? [response.data.url] : [])
           };
-          setProduct(fetchedProduct);
 
-          // Automatically fetch SVG content IF the first image is an SVG AND editable colors are defined
+          // --- Reorder URLs to prioritize SVG at index 0 ---
+          if (fetchedProductData.url.length > 1) {
+            const urls = [...fetchedProductData.url]; // Create mutable copy
+            const firstSvgIndex = urls.findIndex(url => typeof url === 'string' && url.toLowerCase().endsWith('.svg'));
+
+            // If an SVG exists and it's not already the first item
+            if (firstSvgIndex > 0) {
+              const svgUrl = urls.splice(firstSvgIndex, 1)[0]; // Remove SVG from its position
+              urls.unshift(svgUrl); // Add SVG to the beginning
+              fetchedProductData.url = urls; // Update the data object
+            }
+          }
+          // --- End Reordering ---
+
+          setProduct(fetchedProductData);
+
+          // Fetch SVG content if the (potentially reordered) first image is a customizable SVG
           if (
-            fetchedProduct.url.length > 0 &&
-            fetchedProduct.url[0]?.toLowerCase().endsWith('.svg') &&
-            fetchedProduct.editablecolors.length > 0 // Check if customization is intended
+            fetchedProductData.url.length > 0 &&
+            fetchedProductData.url[0]?.toLowerCase().endsWith('.svg') &&
+            fetchedProductData.editablecolors.length > 0
           ) {
-            fetchSvg(fetchedProduct.url[0]);
+            // Fetch SVG for the *first* image (which is now guaranteed to be the SVG if one exists)
+            fetchSvg(fetchedProductData.url[0]);
           }
         } else {
           throw new Error(response.data?.message || `Product not found or failed to load (Status: ${response.status})`);
@@ -102,157 +111,178 @@ export function ProductInfo() {
   }, [slug]); // Dependency: slug changes -> refetch
 
   // --- Fetch SVG Content ---
-  // useCallback to memoize the function if needed elsewhere, though simple here
   const fetchSvg = useCallback(async (url) => {
+    console.log("Attempting to fetch SVG from URL:", url); // Keep for debugging if needed
+    if (!url) {
+        console.warn("fetchSvg called with no URL");
+        return;
+    }
     setLoadingSvg(true);
     setSvgContent(null);
     setModifiedSvgContent(null);
-    setSelectedUserColors({}); // Reset customizations when fetching new SVG
+    setSelectedUserColors({});
     try {
-      const response = await fetch(url, { cache: 'no-store' });
-      if (!response.ok) {
-        throw new Error(`Failed to fetch SVG: ${response.status} ${response.statusText}`);
-      }
+      const response = await fetch(url);
       const svgText = await response.text();
-      setSvgContent(svgText);
-      // No initial modification needed, will be generated on user interaction
+
+      // Optional: Log raw text only if debugging is necessary
+      // console.log("Raw fetched text received (first 200 chars):", svgText.substring(0, 200));
+
+      if (!response.ok) {
+          // Provide more context in the error message if possible
+          throw new Error(`Failed to fetch SVG (${response.status} ${response.statusText} from ${url}). Response preview: ${svgText.substring(0,100)}`);
+      }
+
+      // --- THIS IS THE CORRECTED VALIDATION ---
+      // Check if the string contains '<svg' tag (case-insensitive) after trimming
+      if (!/<svg/i.test(svgText.trim())) {
+          console.error("SVG validation failed. Text did not contain '<svg'. Received:", svgText.substring(0, 200)); // Log what was received
+          throw new Error('Fetched content does not appear to be a valid SVG.');
+      }
+      // --- END CORRECTION ---
+
+      setSvgContent(svgText); // Set content if validation passes
+
     } catch (error) {
-      console.error('Error fetching SVG:', error);
-      toast.error(`Could not load SVG content: ${error.message}`);
+      console.error('Error fetching or processing SVG:', error);
+      // Ensure the error message shown to the user is helpful but not overly technical
+      toast.error(`Could not load SVG preview: ${error.message.split('.')[0]}`); // Show simpler error
       setSvgContent(null); // Clear on error
     } finally {
       setLoadingSvg(false);
     }
-  }, []); // No dependencies needed for this version of fetchSvg
-
-
+  }, []); // Dependencies remain empty if fetchSvg doesn't rely on component state/props directly
   // --- Determine if the CURRENTLY selected image allows customization ---
-  const isCurrentSelectionCustomizable = () => {
+  const isCurrentSelectionCustomizable = useCallback(() => {
     if (!product || !product.url || product.url.length === 0) {
-      return false; // No product or URLs
+      return false;
     }
     const currentUrl = product.url[selectedImageIndex];
     return (
-      currentUrl && // Check if URL exists at index
-      currentUrl.toLowerCase().endsWith('.svg') && // Is it an SVG?
-      product.editablecolors && // Does the editablecolors array exist?
-      product.editablecolors.length > 0 && // Does it have colors defined?
-      svgContent !== null // Has the SVG content actually loaded?
+      currentUrl &&
+      currentUrl.toLowerCase().endsWith('.svg') &&
+      product.editablecolors &&
+      product.editablecolors.length > 0 &&
+      svgContent !== null // Crucially, the SVG content must be loaded
     );
-  };
+  }, [product, selectedImageIndex, svgContent]); // Depends on these states
 
   // --- Handle Thumbnail Clicks ---
-  const handleThumbnailClick = (index) => {
-    if (index === selectedImageIndex) return; // Don't reload if clicking the same image
+  const handleThumbnailClick = useCallback((index) => {
+    if (index === selectedImageIndex || !product || !product.url || index >= product.url.length) return;
 
     setSelectedImageIndex(index);
-    // Reset SVG related states immediately
+
+    // Immediately reset SVG state for the new selection
     setSvgContent(null);
     setModifiedSvgContent(null);
-    setSelectedUserColors({});
+    setSelectedUserColors({}); // Reset colors when switching images
 
-    // Check if the NEWLY selected image is an SVG AND has editable colors defined
-    const newUrl = product?.url?.[index];
-    if (
-        newUrl &&
-        newUrl.toLowerCase().endsWith('.svg') &&
-        product?.editablecolors?.length > 0
-    ) {
-      // If yes, fetch its content
-      fetchSvg(newUrl);
+    // Check if the NEWLY selected image is a customizable SVG
+    const newUrl = product.url[index];
+    const isNewSelectionSvg = newUrl && newUrl.toLowerCase().endsWith('.svg');
+    const hasEditableColors = product.editablecolors && product.editablecolors.length > 0;
+
+    if (isNewSelectionSvg && hasEditableColors) {
+      fetchSvg(newUrl); // Fetch its content if it's a customizable SVG
+    } else {
+      // If it's not a customizable SVG (or not an SVG at all), ensure loading state is false
+      setLoadingSvg(false);
     }
-    // If it's not a customizable SVG, states remain null/empty, and the non-SVG image will be shown.
-  };
+  }, [selectedImageIndex, product, fetchSvg]); // Added fetchSvg dependency
 
 
   // --- Apply User Color Changes to SVG Content ---
   const updateSvgDisplay = useCallback(() => {
-    // Only proceed if we have the original SVG and user has made selections
-    if (!svgContent || Object.keys(selectedUserColors).length === 0) {
-      setModifiedSvgContent(null); // Show original if no changes or no base SVG
-      return;
+    // Require original SVG content to exist
+    if (!svgContent) {
+       setModifiedSvgContent(null); // Cannot modify if base SVG isn't loaded
+       return;
+    }
+    // If no colors selected, show original (or ensure modified is null)
+    if (Object.keys(selectedUserColors).length === 0) {
+       setModifiedSvgContent(null); // Explicitly show original by clearing modified
+       return;
     }
 
-    let currentSvg = svgContent; // Start with the original content
+    let currentSvg = svgContent;
 
-    // Iterate through the user's color mappings { originalColor: newUserColor }
     for (const [originalColor, newUserColorValue] of Object.entries(selectedUserColors)) {
-       // Escape the original color for use in regex (handles #, etc.)
-       const escapedOriginalColor = escapeRegExp(originalColor);
-       if (!escapedOriginalColor) continue; // Skip if original color is invalid
+        // Ensure newUserColorValue is valid before proceeding
+        if (!newUserColorValue || typeof newUserColorValue !== 'string') continue;
 
-        // Build regex to find the original color in common attributes (case-insensitive)
-        // Looks for fill="#...", stroke='#...', stop-color="..." etc.
-       const attributeRegex = new RegExp(
-         `(fill|stroke|stop-color)\\s*=\\s*(["'])\\s*${escapedOriginalColor}\\s*\\2`,
-         'gi' // g: global, i: case-insensitive
-       );
+        const escapedOriginalColor = escapeRegExp(originalColor);
+        if (!escapedOriginalColor) continue;
 
-        // Replace within attributes, preserving attribute name and quotes
+        // Regex for attributes like fill="#...", stroke='#...', stop-color="..."
+        // Added '#' optionality in case colors are specified without it sometimes (though less common)
+        const attributeRegex = new RegExp(
+            `(fill|stroke|stop-color)\\s*=\\s*(["'])\\s*#?${escapedOriginalColor}\\s*\\2`,
+            'gi'
+        );
         currentSvg = currentSvg.replace(attributeRegex, (match, attribute, quote) => {
-           return `${attribute}=${quote}${newUserColorValue}${quote}`;
+            // Ensure the replacement includes the hash if the new color needs it
+            const formattedNewColor = newUserColorValue.startsWith('#') ? newUserColorValue : `#${newUserColorValue}`;
+            return `${attribute}=${quote}${formattedNewColor}${quote}`;
         });
 
-        // Also try to replace within style="..." attributes
-        // Looks for style="...; fill: #... ; ..."
+        // Regex for style="..." attributes like style="...; fill: #... ; ..."
+        // Added '#' optionality here too
         const styleRegex = new RegExp(
-          `(fill|stroke|stop-color):\\s*${escapedOriginalColor}\\s*(;?)`, // Optional semicolon
-          'gi'
+            `(fill|stroke|stop-color):\\s*#?${escapedOriginalColor}\\s*(;?)`,
+            'gi'
         );
-         currentSvg = currentSvg.replace(styleRegex, (match, property, semicolon) => {
-             return `${property}: ${newUserColorValue}${semicolon || ''}`; // Keep semicolon if present
+        currentSvg = currentSvg.replace(styleRegex, (match, property, semicolon) => {
+            const formattedNewColor = newUserColorValue.startsWith('#') ? newUserColorValue : `#${newUserColorValue}`;
+            return `${property}: ${formattedNewColor}${semicolon || ''}`; // Preserve semicolon if present
         });
     }
 
-    // Update the state with the fully modified SVG string
+    // console.log("Original SVG:", svgContent); // DEBUG
+    // console.log("Modified SVG:", currentSvg); // DEBUG
     setModifiedSvgContent(currentSvg);
 
-  }, [svgContent, selectedUserColors]); // Dependencies: run when original SVG or user selections change
+  }, [svgContent, selectedUserColors]);
 
 
-  // --- Effect to trigger SVG update when user selections change ---
+  // --- Effect to trigger SVG update when selections or content change ---
   useEffect(() => {
-    // Only update display if the current selection *is* customizable
+    // Update display only if the current image is meant to be customizable *and* the base SVG is loaded
     if (isCurrentSelectionCustomizable()) {
-      updateSvgDisplay();
+        updateSvgDisplay();
     } else {
-      // If current view is not customizable (e.g., user switched to PNG),
-      // ensure modified content is cleared.
-      setModifiedSvgContent(null);
+        // If not customizable (e.g., switched to PNG, or SVG not loaded yet), ensure modified content is cleared.
+        setModifiedSvgContent(null);
     }
-    // Note: isCurrentSelectionCustomizable() result depends on product, selectedImageIndex, svgContent, etc.
-    // Adding it directly might cause loops. We rely on its core dependencies changing.
-  }, [selectedUserColors, svgContent, product, selectedImageIndex, updateSvgDisplay]); // Re-run when relevant state changes
+  }, [selectedUserColors, svgContent, isCurrentSelectionCustomizable, updateSvgDisplay]); // Dependencies
 
 
-  // --- Handle Selecting a New Color from the Picker ---
+  // --- Handle Selecting a New Color ---
   const handleColorSelect = (newUserColorOption) => {
-    if (!activeEditableColor) return; // Should not happen if modal opened correctly
+    if (!activeEditableColor || !newUserColorOption) return;
 
-    // Update the mapping: original editable color -> new chosen color value
     setSelectedUserColors((prev) => ({
       ...prev,
-      [activeEditableColor]: newUserColorOption.color, // Store the hex/rgb value
+      [activeEditableColor]: newUserColorOption.color,
     }));
 
-    // Close the picker
     setIsColorPickerOpen(false);
     setActiveEditableColor(null);
   };
 
   // --- Open Color Picker ---
   const openColorPicker = (originalColor) => {
-    setActiveEditableColor(originalColor); // Set which original color we are modifying
+    setActiveEditableColor(originalColor);
     setIsColorPickerOpen(true);
   };
 
-  // --- Add to Cart/Wishlist --- (Keep your existing simple functions)
-  // Note: Customization data (selectedUserColors) is NOT sent to backend here.
+  // --- Add to Cart / Wishlist --- (Simple versions)
    const addToCart = async () => {
     if (!product) return;
     try {
-        // TODO: If customization is needed in cart, send selectedUserColors or modifiedSvgContent
-        const response = await sendRequest('POST', '/cart', { productId: product._id, quantity: 1 });
+        // FUTURE: Send customization data if needed
+        // const customizationData = modifiedSvgContent ? { svgData: modifiedSvgContent } : { selectedColors: selectedUserColors };
+        const response = await sendRequest('POST', '/cart', { productId: product._id, quantity: 1 /*, customization: customizationData */ });
         if (response.status === 200 || response.status === 201) {
             toast.success('Added to cart!');
         } else {
@@ -280,17 +310,32 @@ export function ProductInfo() {
    };
 
   // --- Render Logic ---
-  if (loading) {
-    return ( /* Loading Spinner */ "" );
+  if (loading && !product) { // Show loading only initially
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <p>Loading Product...</p> {/* Replace with spinner */}
+      </div>
+    );
   }
 
   if (error || !product) {
-    return ( /* Error Message */"" );
+    return (
+      <>
+        <Navbar />
+        <div className="flex justify-center items-center min-h-[60vh] px-4">
+          <p className="text-center text-red-600">{error || 'Product not found.'}</p>
+        </div>
+        <Footer />
+        <Toaster position="bottom-right" />
+      </>
+    );
   }
 
-  // Determine if customization UI should be shown for the *current* view
-  const showCustomization = isCurrentSelectionCustomizable();
-  const currentImageUrl = product.url[selectedImageIndex];
+  // Determine if the current image is an SVG, regardless of customization possibility
+  const currentImageUrl = product.url?.[selectedImageIndex];
+  const isCurrentSvg = typeof currentImageUrl === 'string' && currentImageUrl.toLowerCase().endsWith('.svg');
+  // Determine if the customization UI should be shown (requires loaded SVG and editable colors)
+  const showCustomizationControls = isCurrentSelectionCustomizable();
 
 
   return (
@@ -300,11 +345,11 @@ export function ProductInfo() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
           {/* Product Images Section */}
           <div className="flex flex-col md:flex-row-reverse lg:flex-row gap-4">
-            {/* Main Image Display */}
-            <div className="flex flex-row md:flex-col md:w-24 gap-2 overflow-x-auto md:overflow-x-hidden md:overflow-y-auto py-2 md:py-0 md:max-h-[500px] lg:max-h-[600px]">
+            {/* Thumbnails Column */}
+             <div className="flex flex-row md:flex-col md:w-24 gap-2 overflow-x-auto md:overflow-x-hidden md:overflow-y-auto py-2 md:py-0 md:max-h-[500px] lg:max-h-[600px] order-first md:order-last lg:order-first">
               {product.url.map((imageUrl, index) => {
-                 // Determine if this specific thumbnail corresponds to a customizable SVG
-                 const isThumbCustomizable = imageUrl?.toLowerCase().endsWith('.svg') && product.editablecolors?.length > 0;
+                 const isThumbSvg = typeof imageUrl === 'string' && imageUrl.toLowerCase().endsWith('.svg');
+                 const isThumbCustomizable = isThumbSvg && product.editablecolors?.length > 0;
                  return (
                       <button
                         key={index}
@@ -315,14 +360,18 @@ export function ProductInfo() {
                         aria-label={`View image ${index + 1}${isThumbCustomizable ? ' (customizable)' : ''}`}
                         aria-current={selectedImageIndex === index ? 'true' : 'false'}
                       >
+                        {/* Use a placeholder or specific thumbnail logic if available */}
                         <img
-                          src={imageUrl || '/placeholder.svg'}
+                          src={imageUrl || '/placeholder.svg'} // Ensure imageUrl is valid
                           alt={`${product.title} thumbnail ${index + 1}`}
                           className="w-full h-full object-cover"
                           loading="lazy"
-                          onError={(e) => { e.target.style.display='none'; /* Or show placeholder */ }}
+                          onError={(e) => {
+                            // Handle broken image links for thumbnails
+                            e.currentTarget.src = '/placeholder-broken.svg'; // Or some indication of error
+                            e.currentTarget.style.objectFit = 'contain';
+                          }}
                         />
-                        {/* Indicator for customizable SVGs */}
                         {isThumbCustomizable && (
                             <span className="absolute bottom-0 right-0 bg-rose-600 text-white text-[8px] px-1 rounded-tl-md font-semibold">EDIT</span>
                         )}
@@ -330,118 +379,145 @@ export function ProductInfo() {
                  );
               })}
             </div>
-            <div className="flex-1 flex justify-center items-center border rounded-lg p-2 bg-gray-50 aspect-square overflow-hidden min-h-[300px]">
-             {loadingSvg ? (
-                 <div className="text-gray-500 animate-pulse">Loading SVG...</div>
-             ) : modifiedSvgContent && showCustomization ? ( // Show modified SVG if available AND current view is customizable
-                <div
-                  className="w-full h-full max-w-full max-h-full object-contain"
-                  dangerouslySetInnerHTML={{ __html: modifiedSvgContent }}
-                  aria-live="polite" // Announce changes if possible
-                />
-              ) : currentImageUrl?.toLowerCase().endsWith('.svg') ? ( // Show original SVG if it's an SVG
-                <object
-                  data={currentImageUrl}
-                  type="image/svg+xml"
-                  className="w-full h-full max-w-full max-h-full object-contain"
-                  aria-label={`${product.title} main image`}
-                  // Add key to force re-render if URL changes but component doesn't unmount
-                  key={currentImageUrl}
-                >
-                  {/* Fallback for <object> */}
-                  <img
-                    src={currentImageUrl} // Try img fallback if object fails
-                    alt={`${product.title} (SVG fallback)`}
-                    className="w-full h-full max-w-full max-h-full object-contain"
-                  />
-                </object>
-              ) : currentImageUrl ? ( // Show standard image if not SVG
-                <img
-                  src={currentImageUrl}
-                  alt={`${product.title} main image`}
-                  className="w-full h-full max-w-full max-h-full object-contain rounded"
-                />
-              ) : (
-                 <div className="text-gray-400">No image selected</div>
-              )}
-            </div>
 
-            {/* Thumbnails Column */}
-       
-          </div>
+          
+            <div className="flex-1 relative border rounded-lg bg-gray-50 overflow-hidden order-last md:order-first lg:order-last">
+  {/* SVG Display Container with consistent height */}
+  <div className="w-full aspect-square flex items-center justify-center">
+    {/* Loading state for SVG content */}
+    {loadingSvg ? (
+      <div className="flex flex-col items-center justify-center h-full w-full">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600"></div>
+        <p className="mt-4 text-gray-500">Loading preview...</p>
+      </div>
+    ) : modifiedSvgContent && showCustomizationControls ? (
+      // Render MODIFIED SVG with better sizing constraints
+      <div 
+        className="w-full h-full flex items-center justify-center p-4"
+        dangerouslySetInnerHTML={{ __html: modifiedSvgContent }}
+        aria-label="Customized design preview"
+        aria-live="polite"
+        role="img"
+      />
+    ) : isCurrentSvg && svgContent ? (
+      // Render ORIGINAL SVG with consistent styling as modified one
+      <div
+        className="w-full h-full flex items-center justify-center p-4"
+        dangerouslySetInnerHTML={{ __html: svgContent }}
+        aria-label="Original design preview"
+        role="img"
+      />
+    ) : isCurrentSvg && !svgContent && !loadingSvg ? (
+      // Error state with better visual feedback
+      <div className="flex flex-col items-center justify-center h-full w-full p-6 text-center">
+        <div className="rounded-full bg-red-100 p-3 mb-3">
+          <X className="w-6 h-6 text-red-500" />
+        </div>
+        <p className="text-red-500 font-medium mb-2">Could not load SVG preview</p>
+        <button 
+          onClick={() => fetchSvg(currentImageUrl)} 
+          className="text-blue-600 border border-blue-600 rounded-md px-4 py-2 hover:bg-blue-50 transition-colors"
+        >
+          Try Again
+        </button>
+      </div>
+    ) : currentImageUrl ? (
+      // Standard Image (PNG, JPG, etc.) with better handling
+      <img
+        src={currentImageUrl}
+        alt={`${product.title} - Image ${selectedImageIndex + 1}`}
+        className="max-w-full max-h-full object-contain"
+        onError={(e) => {
+          e.currentTarget.src = '/placeholder-broken.svg';
+          e.currentTarget.alt = 'Image failed to load';
+        }}
+      />
+    ) : (
+      // Empty state with better visual indication
+      <div className="flex flex-col items-center justify-center h-full w-full p-6">
+        <p className="text-gray-400">No image available</p>
+      </div>
+    )}
+  </div>
+  
+  {/* Optional: Add an indicator when color customization is available */}
+  {isCurrentSelectionCustomizable() && (
+    <div className="absolute top-2 right-2 bg-rose-600 text-white text-xs px-2 py-1 rounded-md font-medium">
+      Customizable
+    </div>
+  )}
+</div>
+                  </div>
 
-          {/* Product Details */}
+                  {/* Product Details */}
           <div className="mt-6 lg:mt-0">
-            {/* Title, Price, Category etc. */}
             <h1 className="text-3xl md:text-4xl font-serif text-gray-800 mb-2">{product.title}</h1>
-             <div className="flex items-baseline gap-4 mb-4 md:mb-6">
-                <p className="text-lg md:text-xl font-semibold text-black">${product.price?.toFixed(2)}</p>
-                <p className="text-sm md:text-base text-gray-600">{product.category}</p>
+            <div className="flex items-baseline gap-4 mb-4 md:mb-6">
+              <p className="text-lg md:text-xl font-semibold text-black">${product.price?.toFixed(2)}</p>
+              <p className="text-sm md:text-base text-gray-600">{product.category}</p>
             </div>
-      
+
             <div className="space-y-6 md:space-y-8">
-              {/* --- Color Customization Section --- */}
-              {/* Render this section ONLY if the current selection is customizable */}
-              {showCustomization && (
+              {/* Description - Moved slightly higher for better flow */}
+              <p className="text-gray-700 mb-6 md:mb-8 text-sm md:text-base leading-relaxed">
+                 {product.description || 'No description available.'}
+              </p>
+
+              {/* Color Customization Section */}
+              {/* Show controls only if the current selected image is an SVG, has editable colors, AND the SVG content is loaded */}
+              {showCustomizationControls && (
                 <div className="border-t pt-6">
                   <h2 className="text-lg md:text-xl font-medium text-gray-800 mb-4">Customize Colors:</h2>
                   <div className="flex flex-wrap gap-3 md:gap-4">
-                    {/* Iterate through the colors defined in the product's editablecolors array */}
                     {product.editablecolors.map((originalColor) => (
                       <div key={originalColor} className="flex flex-col items-center text-center">
                         <button
                           onClick={() => openColorPicker(originalColor)}
                           className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-gray-300 hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-1 transition-all shadow-sm"
                           style={{
-                            // Display the user's selected color if chosen, otherwise the original
                             backgroundColor: selectedUserColors[originalColor] || originalColor,
                           }}
                           aria-label={`Change color: ${originalColor}`}
+                          title={`Click to change ${originalColor}`}
                         />
-                         {/* Optional: Display the original color code for reference */}
-                         <span className="text-[10px] mt-1 text-gray-500 font-mono break-all" title={originalColor}>
+                         <span className="text-[10px] mt-1 text-gray-500 font-mono break-all max-w-[48px] md:max-w-[60px]" title={originalColor}>
                               {originalColor}
                          </span>
                       </div>
                     ))}
                   </div>
-                   <p className="text-xs text-gray-500 mt-3">Click a circle above to change that color element using the palette.</p>
+                   <p className="text-xs text-gray-500 mt-3">Click a circle above to change its color.</p>
                 </div>
               )}
 
               {/* Actions: Add to Cart / Wishlist */}
-              <div className="flex w-3/4  mx-auto gap-3 border-t pt-6">
-                 {/* Add to Cart Button */}
+              <div className="flex flex-col sm:flex-row w-full sm:w-3/4 mx-auto gap-3 border-t pt-6 mt-4"> {/* Adjusted width and added top margin */}
                  <button
                     onClick={addToCart}
-                    className="flex-1 px-4 md:px-6 py-3 bg-gray-800  text-white font-medium rounded-md hover:bg-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 transition-colors text-sm md:text-base text-center disabled:opacity-60 disabled:cursor-not-allowed"
-                    disabled={loading || loadingSvg} // Disable if product or SVG is loading
+                    className="flex-1 px-4 md:px-6 py-3 bg-gray-800 text-white font-medium rounded-md hover:bg-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 transition-colors text-sm md:text-base text-center disabled:opacity-60 disabled:cursor-not-allowed"
+                    disabled={loading || loadingSvg}
                  >
                     ADD TO CART - ${product.price?.toFixed(2)}
                  </button>
-                 {/* Wishlist Button */}
                  <button
                     onClick={addToWishlist}
                     title="Add to Wishlist"
                     aria-label="Add to Wishlist"
-                    className="flex items-center justify-center px-3 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-1 transition-colors duration-200 disabled:opacity-60"
+                    className="flex items-center justify-center px-3 py-3 sm:py-0 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-1 transition-colors duration-200 disabled:opacity-60"
                     disabled={loading}
                  >
                     <Heart className="w-5 h-5 md:w-6 md:h-6 text-gray-600" />
                  </button>
               </div>
-              <p className="text-gray-700 mb-6 md:mb-8 text-sm md:text-base leading-relaxed">{product.description || 'No description available.'}</p>
-
             </div>
           </div>
         </div>
       </div>
 
-      {/* --- Color Picker Modal --- */}
+      {/* Color Picker Modal */}
       {isColorPickerOpen && activeEditableColor && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100] p-4 backdrop-blur-sm"> {/* Ensure high z-index */}
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
           <div className="bg-white p-5 md:p-6 rounded-lg shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col">
-            {/* Modal Header */}
             <div className="flex justify-between items-center mb-4 pb-3 border-b">
               <h3 className="text-base md:text-lg font-medium text-gray-800 flex items-center gap-2">
                  <span>Pick New Color for:</span>
@@ -459,9 +535,7 @@ export function ProductInfo() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-             {/* Modal Body - Scrollable Color Options */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4 overflow-y-auto pr-2 flex-1"> {/* Make grid scrollable */}
-               {/* Predefined Palette Options */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4 overflow-y-auto pr-2 flex-1">
               {colorPaletteOptions.map((colorOption) => (
                 <button
                   key={colorOption.name}
@@ -476,20 +550,20 @@ export function ProductInfo() {
                   <span className="text-xs md:text-sm text-gray-700 group-hover:text-rose-700">{colorOption.label}</span>
                 </button>
               ))}
-               {/* Option to Revert to Original */}
-                <button
-                   key={`${activeEditableColor}-original`} // Unique key
+              {/* Revert Button */}
+               <button
+                   key={`${activeEditableColor}-original`}
                   onClick={() => handleColorSelect({ label: 'Original', color: activeEditableColor })}
                   className="flex flex-col items-center space-y-1 p-2 hover:bg-gray-100 rounded group focus:outline-none focus:ring-2 focus:ring-rose-400 focus:bg-rose-50 transition-colors"
                    aria-label={`Revert to original color ${activeEditableColor}`}
-                >
+               >
                    <div
-                    className="w-10 h-10 md:w-12 md:h-12 rounded-full border border-gray-200 shadow-sm group-hover:scale-105 transition-transform relative bg-gradient-to-br from-gray-200 to-gray-50" // Visual cue for original
+                    className="w-10 h-10 md:w-12 md:h-12 rounded-full border border-gray-200 shadow-sm group-hover:scale-105 transition-transform relative flex items-center justify-center"
                     style={{ backgroundColor: activeEditableColor }}
                   >
-                     <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-black opacity-50 mix-blend-overlay">Revert</span>
+                     <span className="absolute inset-0 flex items-center justify-center text-[8px] font-semibold text-black opacity-60 mix-blend-overlay uppercase tracking-wider">Revert</span>
                    </div>
-                   <span className="text-xs md:text-sm text-gray-700 group-hover:text-rose-700">Original Color</span>
+                   <span className="text-xs md:text-sm text-gray-700 group-hover:text-rose-700">Original</span>
                 </button>
             </div>
           </div>
