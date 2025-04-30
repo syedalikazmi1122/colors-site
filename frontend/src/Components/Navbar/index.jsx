@@ -1,19 +1,19 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { ShoppingCartIcon, UserIcon, HeartIcon, SearchIcon, X, Menu } from "lucide-react";
-// Make sure this path is correct for your project structure
+import { useState, useEffect } from "react";
+import { ShoppingCartIcon, UserIcon, SearchIcon, Menu, X } from "lucide-react";
 import Cart from "./cart";
-// Make sure this path is correct
 import sendRequest from "../../Utils/apirequest";
-// Make sure this path is correct
+import { useCurrency } from "../../Context/CurrencyContext";
 import useProfileAuthStore from "../../Zustand/profileAuthStore";
 import toast, { Toaster } from "react-hot-toast";
-// Make sure this path is correct
-import Logo from "./../../Assets/fabb_logo.jpg"
+import { useNavigate } from "react-router-dom";
 
 const Navbar = () => {
-  // ===== FUNCTIONAL STATE (Keep this) =====
+  const { currency, setCurrency, getCurrencySymbol } = useCurrency();
+  const currencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'NZD'];
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // ===== FUNCTIONAL STATE =====
   const user = useProfileAuthStore((state) => state.isLoggedIn);
   // State to hold the entire cart object from the API
   const [cartData, setCartData] = useState({ items: [], subtotal: 0, totalDiscount: 0 });
@@ -23,7 +23,16 @@ const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   // ===== END FUNCTIONAL STATE =====
 
-  // ===== FUNCTIONALITY (Keep this) =====
+  // ===== FUNCTIONALITY =====
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setIsSearchActive(false);
+      setSearchQuery("");
+    }
+  };
+
   // Function to fetch/refresh cart data
   const fetchCartData = async () => {
     if (!user) {
@@ -51,7 +60,17 @@ const Navbar = () => {
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
-    if (!isMobileMenuOpen) setIsCartOpen(false); // Close cart if opening menu
+    if (!isMobileMenuOpen) {
+      setIsCartOpen(false); // Close cart if opening menu
+      setIsSearchActive(false); // Close search if opening menu
+    }
+  };
+
+  const toggleMobileSearch = () => {
+    setIsSearchActive(!isSearchActive);
+    if (!isSearchActive) {
+      setIsMobileMenuOpen(false); // Close menu if opening search
+    }
   };
 
   const toggleCart = () => {
@@ -61,22 +80,27 @@ const Navbar = () => {
     }
     // Fetch latest data when opening the cart
     if (!isCartOpen) {
-        fetchCartData();
+      fetchCartData();
     }
     setIsCartOpen(!isCartOpen);
-    if (!isCartOpen) setIsMobileMenuOpen(false); // Close menu if opening cart
+    if (!isCartOpen) {
+      setIsMobileMenuOpen(false); // Close menu if opening cart
+      setIsSearchActive(false); // Close search if opening cart
+    }
   };
 
   const handleMobileSearch = (e) => {
     e.preventDefault();
-    // Add search logic here if needed
-    // console.log("Searching for:", mobileSearchQuery);
-    setIsMobileMenuOpen(false); // Close menu after search submission
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setIsMobileMenuOpen(false);
+      setIsSearchActive(false);
+      setSearchQuery("");
+    }
   };
   // ===== END FUNCTIONALITY =====
 
-
-  // ===== ORIGINAL DESIGN DATA (Keep exactly as you had it) =====
+  // ===== DESIGN DATA =====
   const utilityLinks = [
     { name: "Rewards", href: "#" },
     { name: "Registry", href: "#" },
@@ -87,105 +111,162 @@ const Navbar = () => {
   ];
 
   const navItems = [
-    { name: "New", slug: "category/new" },
     { name: "Wallpaper", slug: "category/wallpaper" },
     { name: "Murals", slug: "category/murals" },
     { name: "Wall Decor", slug: "category/wall-decor" },
     { name: "Rugs", slug: "category/rugs" },
     { name: "Kids Wallpapers", slug: "category/kids-wallpaper" },
   ];
-  // ===== END ORIGINAL DESIGN DATA =====
+  // ===== END DESIGN DATA =====
 
-  // Calculate cart item count dynamically (Keep this)
+  // Calculate cart item count dynamically
   const cartItemCount = cartData.items?.length || 0;
 
   return (
     <>
-      {/* ===== ORIGINAL JSX STRUCTURE (Restore exactly as you had it) ===== */}
       <nav className="w-full bg-white border-b border-gray-200">
-        {/* Top Utility Links - Hidden on mobile */}
-        <div className="hidden md:flex justify-end space-x-6 text-sm bg-slate-50 text-gray-600 p-4 pr-4">
-          {utilityLinks.map((link) => (
-            <a
-              key={link.name}
-              href={link.href}
-              // **Important:** If you had specific font styles, keep them.
-              style={{ fontFamily: "Space Grotesk, sans-serif" }}
-              className={`hover:underline hover:text-gray-900 ${link.isBold ? "font-semibold" : "font-medium"}`}
-            >
-              {link.name}
-            </a>
-          ))}
+        {/* Top Utility Links - Hidden on small screens */}
+        <div className="hidden md:flex justify-end space-x-4 sm:space-x-6 text-xs sm:text-sm bg-slate-50 text-gray-600 p-2 sm:p-3 md:p-4 pr-4">
+          {/* Utility Links */}
+          <div className="flex flex-wrap justify-end gap-3 sm:gap-4 md:gap-6">
+            {utilityLinks.map((link) => (
+              <a
+                key={link.name}
+                href={link.href}
+                className={`hover:underline hover:text-gray-900 ${link.isBold ? "font-bold" : "font-normal"}`}
+              >
+                {link.name}
+              </a>
+            ))}
+          </div>
         </div>
 
-        {/* Main Navbar Row */}
-        <div className="flex justify-between items-center px-4 mx-0 md:mx-3 py-4 md:py-6">
-          {/* Hamburger Menu - Visible only on mobile */}
-          <button className="md:hidden text-gray-600 hover:text-black" onClick={toggleMobileMenu}>
-            <Menu size={24} />
-          </button>
+        {/* Main Navigation */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-14 sm:h-16">
+            {/* Mobile menu button - Only visible on small screens */}
+            <div className="flex items-center md:hidden">
+              <button
+                onClick={toggleMobileMenu}
+                className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+                aria-expanded={isMobileMenuOpen}
+                aria-label="Main menu"
+              >
+                <Menu className="h-6 w-6" />
+              </button>
+            </div>
 
-          {/* Search Area - Responsive */}
-          <div className="hidden md:flex items-center border-none rounded-md px-3 py-1 w-96">
-            <SearchIcon size={20} className="text-gray-500 mr-2" />
-            {/* Ensure input styling is exactly as you had it */}
-            <input type="text" placeholder="SEARCH" className="w-full outline-none border-none text-sm" />
+            {/* Desktop Search - Hidden on mobile */}
+            <div className="hidden md:flex md:items-center md:w-1/4">
+              <form onSubmit={handleSearch} className="relative w-full flex items-center">
+                <SearchIcon className="h-5 w-5 text-gray-400 absolute left-3" />
+                <input
+                  type="text"
+                  placeholder="Search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-3 py-1 border-0 focus:ring-0 focus:outline-none text-sm"
+                />
+              </form>
+            </div>
+
+            {/* Logo */}
+            <div className="flex-shrink-0 flex justify-center">
+              <a href="/" className="text-xl sm:text-2xl font-serif tracking-wide text-gray-800">
+                FABB
+              </a>
+            </div>
+
+            {/* Right side icons */}
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              {/* Currency Selector */}
+              <div className="relative border-solid border-2 border-gray-300 rounded-md">
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  className="appearance-none bg-transparent border-none text-gray-700 py-1 sm:py-2 pl-2 sm:pl-3 pr-6 sm:pr-8 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  {currencies.map((curr) => (
+                    <option key={curr} value={curr}>
+                      {curr} ({getCurrencySymbol(curr)})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Mobile Search Toggle - Only visible on small screens */}
+              <button
+                onClick={toggleMobileSearch}
+                className="md:hidden p-2 text-gray-600 hover:text-gray-800"
+                aria-label="Search"
+              >
+                <SearchIcon className="h-5 w-5" />
+              </button>
+
+              {/* User Profile */}
+              <a
+                href={user ? "/profile" : "/login"}
+                className="p-1 sm:p-2 text-gray-600 hover:text-gray-800"
+                aria-label={user ? "Profile" : "Login"}
+              >
+                <UserIcon className="h-5 w-5 sm:h-6 sm:w-6" />
+              </a>
+
+              {/* Wishlist - Hidden on small screens */}
+              <a
+                href="/wishlist"
+                className="p-1 sm:p-2 text-gray-600 hover:text-gray-800 hidden md:block"
+                aria-label="Wishlist"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 sm:h-6 sm:w-6">
+                  <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                </svg>
+              </a>
+
+              {/* Cart */}
+              <button
+                onClick={toggleCart}
+                className="p-1 sm:p-2 text-gray-600 hover:text-gray-800 relative"
+                aria-label="Cart"
+              >
+                <ShoppingCartIcon className="h-5 w-5 sm:h-6 sm:w-6" />
+                {cartItemCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center">
+                    {cartItemCount}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
+        </div>
 
-          {/* Logo - Centered on mobile */}
-          <div className="text-xl md:text-2xl font-bold">
-            <a href="/" className="flex items-center space-x-2">
-              {/* Ensure Logo path and styling are correct */}
-              <img src={Logo} alt="Logo" className="h-12" />
-              {/* Add text logo here if you had one */}
-            </a>
-          </div>
-
-          {/* Right Icons - Responsive */}
-          <div className="flex space-x-4 md:space-x-6">
-            {/* Search icon only on mobile */}
-            <button
-              className="md:hidden text-gray-600 hover:text-black"
-              onClick={() => setIsSearchActive(!isSearchActive)}
-            >
-              <SearchIcon size={20} />
-            </button>
-
-            {/* User icon - Hidden on smallest screens */}
-            <a href="/profile" className="hidden sm:block text-gray-600 hover:text-black">
-              <UserIcon size={20} />
-            </a>
-
-            {/* Heart icon - Hidden on smallest screens */}
-            <a href="/wishlist" className="hidden sm:block text-gray-600 hover:text-black">
-              <HeartIcon size={20} />
-            </a>
-
-            {/* Cart icon - Always visible (FUNCTIONAL CHANGE HERE) */}
-            <button className="text-gray-600 hover:text-black relative" onClick={toggleCart}>
-              <ShoppingCartIcon size={20} />
-              {/* Use calculated cartItemCount for the badge */}
-              {cartItemCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-gray-900 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                  {cartItemCount}
-                </span>
-              )}
-            </button>
+        {/* Category Navigation - Desktop Only */}
+        <div className="hidden md:block border-t border-gray-100">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex justify-center space-x-4 lg:space-x-8">
+              {navItems.map((item) => (
+                <a
+                  key={item.name}
+                  href={`/${item.slug}`}
+                  className="text-gray-600 hover:text-gray-900 px-2 lg:px-3 py-3 lg:py-4 text-sm font-normal whitespace-nowrap"
+                >
+                  {item.name}
+                </a>
+              ))}
+            </div>
           </div>
         </div>
 
         {/* Mobile Search Bar - Only visible when active */}
         {isSearchActive && (
           <div className="md:hidden px-4 py-3 border-t border-gray-200">
-            {/* Keep your original mobile search form */}
             <form onSubmit={handleMobileSearch} className="flex items-center">
               <input
                 type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search products..."
                 className="flex-1 p-2 border border-gray-300 rounded-l-sm text-sm"
-                // Bind value and onChange if you implement search state
-                // value={mobileSearchQuery}
-                // onChange={(e) => setMobileSearchQuery(e.target.value)}
               />
               <button type="submit" className="bg-gray-900 text-white p-2 rounded-r-sm">
                 <SearchIcon size={18} />
@@ -193,25 +274,9 @@ const Navbar = () => {
             </form>
           </div>
         )}
-
-        <hr className="border-gray-200" />
-
-        {/* Main Navbar Links - Hidden on mobile */}
-        <div className="hidden md:flex justify-center items-center px-4 py-3">
-          <div className="flex space-x-6 overflow-x-auto">
-            {/* Map over your original navItems */}
-            {navItems.map((item) => (
-              <a key={item.slug} href={`/${item.slug}`} className="text-base text-gray-700 hover:text-black whitespace-nowrap">
-                {item.name}
-              </a>
-            ))}
-          </div>
-        </div>
       </nav>
-      {/* ===== END ORIGINAL JSX STRUCTURE ===== */}
 
-
-      {/* ===== MOBILE MENU DRAWER (Keep original structure) ===== */}
+      {/* Mobile menu */}
       <div className={`fixed inset-0 overflow-hidden z-50 ${isMobileMenuOpen ? "" : "pointer-events-none"}`}>
         {/* Overlay */}
         <div
@@ -229,7 +294,11 @@ const Navbar = () => {
             {/* Header */}
             <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
               <h2 className="text-lg font-medium">Menu</h2>
-              <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 hover:bg-gray-100 rounded-full">
+              <button 
+                onClick={() => setIsMobileMenuOpen(false)} 
+                className="p-2 hover:bg-gray-100 rounded-full"
+                aria-label="Close menu"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -239,7 +308,6 @@ const Navbar = () => {
               <div className="py-6 px-6 border-b border-gray-200">
                 <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Shop</h3>
                 <ul className="space-y-4">
-                  {/* Map over your original navItems */}
                   {navItems.map((item) => (
                     <li key={item.slug}>
                       <a href={`/${item.slug}`} className="text-base font-medium text-gray-900 hover:text-gray-600">
@@ -249,26 +317,92 @@ const Navbar = () => {
                   ))}
                 </ul>
               </div>
-              {/* Add other mobile menu sections (utility links, etc.) if you had them */}
+              
+              {/* Mobile Utility Links - Only shown in mobile menu */}
+              <div className="py-6 px-6 border-b border-gray-200">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Account</h3>
+                <ul className="space-y-4">
+                  <li>
+                    <a href="/wishlist" className="text-base font-medium text-gray-900 hover:text-gray-600">
+                      Wishlist
+                    </a>
+                  </li>
+                  <li>
+                    <a href={user ? "/profile" : "/login"} className="text-base font-medium text-gray-900 hover:text-gray-600">
+                      {user ? "My Account" : "Login / Register"}
+                    </a>
+                  </li>
+                </ul>
+              </div>
+              
+              {/* Mobile Utility Links */}
+              <div className="py-6 px-6 border-b border-gray-200">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Customer Service</h3>
+                <ul className="space-y-4">
+                  {utilityLinks.map((link) => (
+                    <li key={link.name}>
+                      <a 
+                        href={link.href} 
+                        className={`text-base hover:text-gray-600 ${link.isBold ? "font-medium text-gray-900" : "text-gray-700"}`}
+                      >
+                        {link.name}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              
+              {/* Mobile Search */}
+              <div className="py-6 px-6 border-b border-gray-200">
+                <form onSubmit={handleMobileSearch}>
+                  <div className="flex items-center">
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search products..."
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <button
+                      type="submit"
+                      className="ml-2 p-2 text-gray-400 hover:text-gray-500"
+                    >
+                      <SearchIcon className="h-5 w-5" />
+                    </button>
+                  </div>
+                </form>
+              </div>
+              
+              {/* Currency Selector in Mobile Menu */}
+              <div className="py-6 px-6">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Currency</h3>
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md bg-white"
+                >
+                  {currencies.map((curr) => (
+                    <option key={curr} value={curr}>
+                      {curr} ({getCurrencySymbol(curr)})
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
         </div>
       </div>
-      {/* ===== END MOBILE MENU DRAWER ===== */}
 
-
-      {/* ===== CART COMPONENT (FUNCTIONAL CHANGE HERE) ===== */}
-      {/* Pass the correct props: cartData object and the refetchCart function */}
-      <Cart
-        isCartOpen={isCartOpen}
+      {/* Cart Component - Updated approach */}
+      <Cart 
+        isCartOpen={isCartOpen} 
         setIsCartOpen={setIsCartOpen}
-        cartData={cartData}           // Pass the whole data object
-        refetchCart={fetchCartData}  // Pass the function to refresh data
+        cartData={cartData}
+        refetchCart={fetchCartData}
       />
-      {/* ===== END CART COMPONENT ===== */}
 
       {/* Toaster for notifications */}
-      <Toaster position="bottom-right"/>
+      <Toaster position="bottom-right" />
     </>
   );
 };

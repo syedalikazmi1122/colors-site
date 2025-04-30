@@ -23,6 +23,10 @@ const SvgSchema = new Schema(
             enum: ['svg','tiff', 'png', 'jpg'],
             default: 'svg',
         },
+        ismeasureable: {
+            type: Boolean,
+            default: false,
+        },
         slug: {
             type: String,
             required: true,
@@ -58,6 +62,14 @@ const SvgSchema = new Schema(
         featureOnInstagram: {
             type: Boolean,
             default: false,
+        },
+        material: {
+            type: [String],
+            default: [],
+        },
+        materialDescription: {
+            type: String,
+            default: '',
         },
         createdAt: {
             type: Date,

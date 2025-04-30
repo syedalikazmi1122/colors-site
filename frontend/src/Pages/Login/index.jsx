@@ -18,31 +18,35 @@ export function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     // Validate email and password
     if (!formData.email.trim() || !formData.password.trim()) {
       toast.error('Email and password are required.');
       return;
     }
-
+  
     try {
       const response = await sendRequest('POST', '/login', formData);
-
+  
       if (response.status === 200) {
         console.log('Login successful:', response.data);
         toast.success('Login successful!');
-
+  
         // Store token in localStorage
         localStorage.setItem('token', response.data.token);
-
+  
         // Extract user data from response
         const user = response.data.user;
-
+    console.log('User data:', user);
         // Set user in Zustand store
         setUser(user);
-
-        // Navigate to profile page
-        navigate('/profile');
+    console.log("user role", user.role);
+        // Navigate based on user role
+        if (response.data.user.role && response.data.user.role.toLowerCase() === 'admin') {
+          navigate('/admin-dashboard');
+        } else {
+          navigate('/profile');
+        }
       } else {
         toast.error('Invalid email or password. Please try again.');
       }
@@ -51,7 +55,6 @@ export function Login() {
       toast.error('An error occurred during login. Please try again.');
     }
   };
-
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -116,7 +119,7 @@ export function Login() {
 
             <div className="text-center">
               <p className="text-sm text-gray-600">
-                New to [Company name]?{' '}
+                New to  <strong>FABB HOME AND LIVING? </strong> {' '}
                 <a href="/signup" className="text-gray-900 hover:underline">
                   Start Here
                 </a>

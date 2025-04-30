@@ -18,7 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/", Routes);
 
 // ✅ Export handler instead of listening
-connect(process.env.MONGODB_STRING)
+connect("mongodb+srv://musanifplatform:wZWboFfKAfRzjXdq@musanif.yfvyt.mongodb.net/practice?retryWrites=true&w=majority&appName=musanif")
   .then(() => {
     console.log("Mongo Connected Successfully");
   })

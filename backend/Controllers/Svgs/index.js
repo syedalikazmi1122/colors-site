@@ -25,7 +25,9 @@ export const uploadSvg = async (req, res) => {
       isfeatured,
       editablecolors,
       isbanner,
-      instagram_link
+      instagram_link,
+      material,
+      materialDescription
     } = req.body;
 
     // Validate required fields
@@ -53,7 +55,9 @@ export const uploadSvg = async (req, res) => {
       slug,
       isfeatured: Boolean(isfeatured),
       isbanner: Boolean(isbanner),
-      instagram_link
+      instagram_link,
+      material: material || [],
+      materialDescription: materialDescription || ''
     });
 
     await newSvg.save();
@@ -80,7 +84,10 @@ export const EditSvg = async (req, res) => {
       isfeatured,
       isbanner,
       editablecolors,
-      instagram_link
+      instagram_link,
+      ismeasureable, // Include ismeasureable in the request body
+      material,
+      materialDescription
     } = req.body;
 
     // Validate required fields
@@ -126,6 +133,9 @@ export const EditSvg = async (req, res) => {
         featureOnInstagram: Boolean(featureOnInstagram),
         editablecolors: iseditable ? editablecolors : [],
         instagram_link,
+        ismeasureable: Boolean(ismeasureable), // Update ismeasureable field
+        material: material || [],
+        materialDescription: materialDescription || '',
         updatedAt: new Date()
       },
       { 
@@ -298,6 +308,7 @@ export const getTopSvgsByCategory = async (req, res) => {
 // Get SVGs for Home Page
 export const getHomepageRandomSvgs = async (req, res) => {
     try {
+      console.log("called homepage random svgs") 
         const svgs = await Svg.find().limit(10);
         res.json(svgs);
     } catch (error) {
@@ -324,3 +335,49 @@ export const getHomepageTopSvg = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 }
+
+// Get banners and products with Instagram links
+export const getBannersAndInstagramProducts = async (req, res) => {
+  console.log("called banners and instagram products")
+  try {
+    const banners = await Svg.find({ isbanner: true });
+    const instagramProducts = await Svg.find({ featureOnInstagram: true });
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        banners,
+        instagramProducts
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Get random products from all categories
+export const getRandomProducts = async (req, res) => {
+  try {
+    // Get all unique categories
+    const categories = await Svg.distinct('category');
+    
+    // Get 2 random products from each category
+    const productsByCategory = await Promise.all(
+      categories.map(async (category) => {
+        const products = await Svg.aggregate([
+          { $match: { category } },
+          { $sample: { size: 2 } }
+        ]);
+        return { category, products };
+      })
+    );
+
+    res.status(200).json({
+      success: true,
+      data: productsByCategory
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
