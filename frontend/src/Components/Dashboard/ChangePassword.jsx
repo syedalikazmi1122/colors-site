@@ -1,7 +1,24 @@
 "use client"
 import sendRequest from "./../../Utils/apirequest";
+import { useTranslation } from "react-i18next";
+import toast from "react-hot-toast";
+import { useState } from "react"
 
-function ChangePassword() {
+function ChangePassword({ language }) {
+  const { t } = useTranslation();
+  const [formData, setFormData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     const currentPassword = e.target.currentPassword.value
@@ -9,7 +26,7 @@ function ChangePassword() {
     const confirmPassword = e.target.confirmPassword.value
 
     if (newPassword !== confirmPassword) {
-      alert("New passwords do not match")
+      toast.error(t('dashboard.password.mismatch'))
       return
     }
 
@@ -20,29 +37,31 @@ function ChangePassword() {
       })
 
       if (response.status === 200) {
-        alert("Password changed successfully")
+        toast.success(t('dashboard.password.success'))
       } else {
-        alert("Failed to change password")
+        toast.error(t('dashboard.password.failed'))
       }
     } catch (error) {
       console.error("Error changing password:", error)
-      alert("An error occurred while changing your password")
+      toast.error(t('dashboard.password.error'))
     }
   }
 
   return (
     <div>
-      <h2 className="text-xl font-serif mb-4 pb-2 border-b border-gray-200">Change Password</h2>
+      <h2 className="text-xl font-serif mb-4 pb-2 border-b border-gray-200">{t('dashboard.password.title')}</h2>
 
       <form onSubmit={handleSubmit} className="py-6 space-y-4 max-w-md">
         <div>
           <label htmlFor="currentPassword" className="block text-sm text-gray-600 mb-1">
-            Current Password
+            {t('dashboard.password.current')}
           </label>
           <input
             id="currentPassword"
             name="currentPassword"
             type="password"
+            value={formData.currentPassword}
+            onChange={handleChange}
             className="w-full p-2 border border-gray-300 rounded-sm"
             required
           />
@@ -50,12 +69,14 @@ function ChangePassword() {
 
         <div>
           <label htmlFor="newPassword" className="block text-sm text-gray-600 mb-1">
-            New Password
+            {t('dashboard.password.new')}
           </label>
           <input
             id="newPassword"
             name="newPassword"
             type="password"
+            value={formData.newPassword}
+            onChange={handleChange}
             className="w-full p-2 border border-gray-300 rounded-sm"
             required
           />
@@ -63,12 +84,14 @@ function ChangePassword() {
 
         <div>
           <label htmlFor="confirmPassword" className="block text-sm text-gray-600 mb-1">
-            Confirm New Password
+            {t('dashboard.password.confirm')}
           </label>
           <input
             id="confirmPassword"
             name="confirmPassword"
             type="password"
+            value={formData.confirmPassword}
+            onChange={handleChange}
             className="w-full p-2 border border-gray-300 rounded-sm"
             required
           />
@@ -78,7 +101,7 @@ function ChangePassword() {
           type="submit"
           className="bg-gray-900 text-white px-4 py-2 rounded-sm hover:bg-gray-800 transition-colors"
         >
-          Update Password
+          {t('dashboard.password.update')}
         </button>
       </form>
     </div>

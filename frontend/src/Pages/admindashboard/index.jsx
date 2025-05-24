@@ -137,7 +137,8 @@ export function AdminDashboard() {
       console.error("SVG file URL not found in:", svg.url);
       setSelectedSvg({
         ...svg,
-        editablecolors: svg.editablecolors || []
+        editablecolors: svg.editablecolors || [],
+         productID: svg.productId || ''
       });
       setSvgUrlForEditing('');
       setExtractedColors([]);
@@ -148,6 +149,7 @@ export function AdminDashboard() {
     setSvgUrlForEditing(svgFileUrl);
     setSelectedSvg({
       ...svg,
+      title: svg.title,
       editablecolors: svg.editablecolors || []
     });
     setIsEditModalOpen(true);
@@ -306,7 +308,7 @@ export function AdminDashboard() {
                 <div className="aspect-square bg-gray-100 rounded overflow-hidden relative mb-4">
                   <SvgImageCarousel
                     urls={svg.url}
-                    alt={svg.title}
+                    alt={svg.title?.en}
                     className="w-full h-full object-contain"
                   />
                   
@@ -319,7 +321,7 @@ export function AdminDashboard() {
                 </div>
 
                 <div className="space-y-2 flex-grow">
-                  <h3 className="text-lg font-medium">{svg.title}</h3>
+                  <h3 className="text-lg font-medium">{svg?.title?.en}</h3>
                   <div className="flex items-center justify-between">
                     <span className="text-sm px-2 py-0.5 bg-gray-100 rounded-sm text-gray-700">{svg.category}</span>
                     <span className="font-medium text-gray-900">${svg.price?.toFixed(2)}</span>
@@ -357,14 +359,14 @@ export function AdminDashboard() {
                     <button
                       onClick={() => handleEdit(svg)}
                       className="p-2 hover:bg-gray-100 rounded text-gray-600 hover:text-gray-900 transition-colors"
-                      aria-label={`Edit ${svg.title}`}
+                      aria-label={`Edit ${svg.title?.en}`}
                     >
                       <Edit2 size={18} />
                     </button>
                     <button
                       onClick={() => handleDelete(svg._id, svg.url)}
                       className="p-2 hover:bg-red-50 rounded text-red-500 hover:text-red-700 transition-colors"
-                      aria-label={`Delete ${svg.title}`}
+                      aria-label={`Delete ${svg.title?.en}`}
                     >
                       <Trash2 size={18} />
                     </button>
@@ -403,7 +405,7 @@ export function AdminDashboard() {
           <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
             <div className="p-6 sticky top-0 bg-white border-b z-10">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-serif">Edit Design: {selectedSvg.title}</h2>
+                <h2 className="text-2xl font-serif">Edit Design: {selectedSvg?.title?.en}</h2>
                 <button
                   onClick={closeEditModal}
                   className="text-gray-400 hover:text-gray-600 text-2xl"
@@ -419,13 +421,55 @@ export function AdminDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label htmlFor="edit-title" className="block text-sm font-medium text-gray-700 mb-1">
-                    Title
+                    Title (English)
                   </label>
                   <input
                     id="edit-title"
                     type="text"
-                    value={selectedSvg.title}
-                    onChange={(e) => setSelectedSvg({ ...selectedSvg, title: e.target.value })}
+                    value={selectedSvg?.title?.en || ''}
+                    onChange={async (e) => {
+                      const englishTitle = e.target.value;
+                      try {
+                        // Translate to Spanish
+                        const esResponse = await sendRequest('POST', '/translate', {
+                          text: englishTitle,
+                          targetLanguage: 'es'
+                        });
+                        
+                        // Translate to French
+                        const frResponse = await sendRequest('POST', '/translate', {
+                          text: englishTitle,
+                          targetLanguage: 'fr'
+                        });
+                        
+                        // Translate to German
+                        const deResponse = await sendRequest('POST', '/translate', {
+                          text: englishTitle,
+                          targetLanguage: 'de'
+                        });
+
+                        setSelectedSvg({ 
+                          ...selectedSvg, 
+                          title: {
+                            en: englishTitle,
+                            es: esResponse.data.translatedText,
+                            fr: frResponse.data.translatedText,
+                            de: deResponse.data.translatedText
+                          }
+                        });
+                      } catch (error) {
+                        console.error('Translation error:', error);
+                        // If translation fails, at least update the English title
+                        setSelectedSvg({ 
+                          ...selectedSvg, 
+                          title: {
+                            ...selectedSvg.title,
+                            en: englishTitle
+                          }
+                        });
+                        toast.error('Failed to translate title. Only English title was updated.');
+                      }
+                    }}
                     className="w-full px-3 py-2 border border-gray-300 rounded shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                     required
                   />
@@ -480,48 +524,178 @@ export function AdminDashboard() {
                     Material (comma separated)
                   </label>
                   <input
-  id="edit-material"
-  type="text"
-  value={materialInput}
-  onChange={(e) => {
-    setMaterialInput(e.target.value);
-    setSelectedSvg({
-      ...selectedSvg,
-      material: e.target.value.split(',').map(m => m.trim()).filter(Boolean)
-    });
-  }}
-  className="w-full px-3 py-2 border border-gray-300 rounded-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-  placeholder="e.g. Paper, Vinyl, Fabric"
-/>
+                    id="edit-material"
+                    type="text"
+                    value={materialInput}
+                    onChange={async (e) => {
+                      const materials = e.target.value.split(',').map(m => m.trim()).filter(Boolean);
+                      setMaterialInput(e.target.value);
+                      
+                      try {
+                        // Create an array of material objects with translations
+                        const translatedMaterials = await Promise.all(
+                          materials.map(async (material) => {
+                            // Translate to Spanish
+                            const esResponse = await sendRequest('POST', '/translate', {
+                              text: material,
+                              targetLanguage: 'es'
+                            });
+                            
+                            // Translate to French
+                            const frResponse = await sendRequest('POST', '/translate', {
+                              text: material,
+                              targetLanguage: 'fr'
+                            });
+                            
+                            // Translate to German
+                            const deResponse = await sendRequest('POST', '/translate', {
+                              text: material,
+                              targetLanguage: 'de'
+                            });
 
+                            return {
+                              en: material,
+                              es: esResponse.data.translatedText,
+                              fr: frResponse.data.translatedText,
+                              de: deResponse.data.translatedText
+                            };
+                          })
+                        );
+
+                        setSelectedSvg({
+                          ...selectedSvg,
+                          material: translatedMaterials
+                        });
+                      } catch (error) {
+                        console.error('Translation error:', error);
+                        // If translation fails, at least update with English materials
+                        setSelectedSvg({
+                          ...selectedSvg,
+                          material: materials.map(material => ({
+                            en: material,
+                            es: '',
+                            fr: '',
+                            de: ''
+                          }))
+                        });
+                        toast.error('Failed to translate materials. Only English materials were updated.');
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="e.g. Paper, Vinyl, Fabric"
+                  />
                 </div>
                 <div>
+                  <label htmlFor="edit-description" className="block text-sm font-medium text-gray-700 mb-1">
+                    Description (English)
+                  </label>
+                  <textarea
+                    id="edit-description"
+                    value={selectedSvg?.description?.en || ''}
+                    onChange={async (e) => {
+                      const englishDescription = e.target.value;
+                      try {
+                        // Translate to Spanish
+                        const esResponse = await sendRequest('POST', '/translate', {
+                          text: englishDescription,
+                          targetLanguage: 'es'
+                        });
+                        
+                        // Translate to French
+                        const frResponse = await sendRequest('POST', '/translate', {
+                          text: englishDescription,
+                          targetLanguage: 'fr'
+                        });
+                        
+                        // Translate to German
+                        const deResponse = await sendRequest('POST', '/translate', {
+                          text: englishDescription,
+                          targetLanguage: 'de'
+                        });
+
+                        setSelectedSvg({ 
+                          ...selectedSvg, 
+                          description: {
+                            en: englishDescription,
+                            es: esResponse.data.translatedText,
+                            fr: frResponse.data.translatedText,
+                            de: deResponse.data.translatedText
+                          }
+                        });
+                      } catch (error) {
+                        console.error('Translation error:', error);
+                        // If translation fails, at least update the English description
+                        setSelectedSvg({ 
+                          ...selectedSvg, 
+                          description: {
+                            ...selectedSvg.description,
+                            en: englishDescription
+                          }
+                        });
+                        toast.error('Failed to translate description. Only English description was updated.');
+                      }
+                    }}
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 rounded shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    required
+                  />
+                </div>
+
+                <div>
                   <label htmlFor="edit-material-description" className="block text-sm font-medium text-gray-700 mb-1">
-                    Material Description
+                    Material Description (English)
                   </label>
                   <textarea
                     id="edit-material-description"
-                    value={selectedSvg.materialDescription || ''}
-                    onChange={(e) => setSelectedSvg({ ...selectedSvg, materialDescription: e.target.value })}
+                    value={selectedSvg?.materialDescription?.en || ''}
+                    onChange={async (e) => {
+                      const englishMaterialDesc = e.target.value;
+                      try {
+                        // Translate to Spanish
+                        const esResponse = await sendRequest('POST', '/translate', {
+                          text: englishMaterialDesc,
+                          targetLanguage: 'es'
+                        });
+                        
+                        // Translate to French
+                        const frResponse = await sendRequest('POST', '/translate', {
+                          text: englishMaterialDesc,
+                          targetLanguage: 'fr'
+                        });
+                        
+                        // Translate to German
+                        const deResponse = await sendRequest('POST', '/translate', {
+                          text: englishMaterialDesc,
+                          targetLanguage: 'de'
+                        });
+
+                        setSelectedSvg({ 
+                          ...selectedSvg, 
+                          materialDescription: {
+                            en: englishMaterialDesc,
+                            es: esResponse.data.translatedText,
+                            fr: frResponse.data.translatedText,
+                            de: deResponse.data.translatedText
+                          }
+                        });
+                      } catch (error) {
+                        console.error('Translation error:', error);
+                        // If translation fails, at least update the English material description
+                        setSelectedSvg({ 
+                          ...selectedSvg, 
+                          materialDescription: {
+                            ...selectedSvg.materialDescription,
+                            en: englishMaterialDesc
+                          }
+                        });
+                        toast.error('Failed to translate material description. Only English description was updated.');
+                      }
+                    }}
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="Describe the material(s) used for this design."
                   />
                 </div>
-              </div>
-
-              <div>
-                <label htmlFor="edit-description" className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
-                <textarea
-                  id="edit-description"
-                  value={selectedSvg.description || ''}
-                  onChange={(e) => setSelectedSvg({ ...selectedSvg, description: e.target.value })}
-                  rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                  required
-                />
               </div>
 
               <div className="space-y-4 border-t pt-4">

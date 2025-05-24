@@ -9,6 +9,7 @@ import { useParams } from "react-router-dom"
 import toast, { Toaster } from "react-hot-toast"
 import namer from "color-namer"
 import { useCurrency } from "../../Context/CurrencyContext"
+import { useTranslation } from "react-i18next"
 // --- Predefined Color Palette ---
 const colorPaletteOptions = [
   { name: "white", label: "White", color: "#FFFFFF" },
@@ -53,6 +54,8 @@ const MEASUREMENT_UNITS = [
 ]
 
 export function ProductInfo() {
+  
+  const { t, i18n } = useTranslation();
   const { slug } = useParams()
   const { convertPrice, getCurrencySymbol } = useCurrency()
   const [product, setProduct] = useState(null)
@@ -428,7 +431,7 @@ export function ProductInfo() {
         <Navbar />
         <div className="flex justify-center items-center min-h-[60vh]">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-rose-600"></div>
-          <p className="ml-4 text-gray-600 text-lg">Loading Product...</p>
+          <p className="ml-4 text-gray-600 text-lg">{t('common.loading')}</p>
         </div>
         <Footer />
       </>
@@ -444,9 +447,9 @@ export function ProductInfo() {
           <div className="bg-red-100 p-4 rounded-full mb-4">
             <X className="w-10 h-10 text-red-500" />
           </div>
-          <h2 className="text-xl font-semibold mb-2 text-gray-800">Error Loading Product</h2>
+          <h2 className="text-xl font-semibold mb-2 text-gray-800">{t('common.error')}</h2>
           <p className="text-red-600 max-w-md">
-            {error || "Product data could not be retrieved. Please try refreshing the page or contact support."}
+            {error || t('common.productLoadError')}
           </p>
         </div>
         <Footer />
@@ -462,6 +465,11 @@ export function ProductInfo() {
   const hasSvgLoadError = svgError !== null
   // Show customization controls only if allowed AND the base SVG is loaded without error
   const showCustomizationControls = isCurrentSelectionCustomizable() // Relies on the updated definition
+
+  const currentLanguage = i18n.language;
+  const title = product.title?.[currentLanguage] || product.title?.en || product.title;
+  const description = product.description[currentLanguage] || product.description.en;
+  const materialDescription = product.materialDescription?.[currentLanguage] || product.materialDescription?.en || '';
 
   return (
     <>
@@ -495,7 +503,7 @@ export function ProductInfo() {
                     >
                       <img
                         src={imageUrl || "/placeholder.svg"} // Fallback placeholder
-                        alt={`${product.title} thumbnail ${index + 1}`}
+                        alt={`${title} thumbnail ${index + 1}`}
                         className="w-full h-full object-cover"
                         loading="lazy"
                         onError={(e) => {
@@ -506,7 +514,7 @@ export function ProductInfo() {
                       />
                       {isThumbPotentiallyCustomizable && (
                         <span className="absolute bottom-0 right-0 bg-rose-600 text-white text-[9px] px-1.5 py-0.5 rounded-tl-md font-semibold shadow-sm">
-                          EDIT
+                         {t("edit")}  
                         </span>
                       )}
                     </button>
@@ -576,7 +584,7 @@ export function ProductInfo() {
                     <img
                       key={currentImageUrl} // Force re-render on src change
                       src={currentImageUrl || "/placeholder.svg"}
-                      alt={`${product.title} - Image ${selectedImageIndex + 1}`}
+                      alt={`${title} - Image ${selectedImageIndex + 1}`}
                       className={`max-w-full max-h-full object-contain transition-opacity duration-300 ease-in-out ${loadingStandardImage ? "opacity-0" : "opacity-100"}`} // Fade in
                       // Reset loading state when image loads or errors
                       onLoad={() => setLoadingStandardImage(false)}
@@ -608,7 +616,7 @@ export function ProductInfo() {
           </div>
           {/* Product Details Section */}
           <div className="mt-6 lg:mt-0">
-            <h1 className="text-3xl md:text-4xl font-serif tracking-tight text-gray-900 mb-2">{product.title}</h1>{" "}
+            <h1 className="text-3xl md:text-4xl font-serif tracking-tight text-gray-900 mb-2">{title}</h1>{" "}
             {/* Adjusted font */}
             <div className="flex items-baseline gap-4 mb-4 md:mb-6">
               <p className="text-xl md:text-2xl font-semibold text-gray-800">
@@ -622,40 +630,32 @@ export function ProductInfo() {
             <div className="prose prose-sm sm:prose-base text-gray-700 mb-6 md:mb-8 max-w-none">
               {" "}
               {/* Using prose for better text formatting */}
-              {product.description || <p className="italic">No description available.</p>}
+              {description || <p className="italic">{t('common.noDescription')}</p>}
             </div>
             {/* Materials Section */}
             <div className="border-t border-gray-200 pt-6">
-              <h2 className="text-lg md:text-xl font-medium text-gray-800 mb-4">Materials:</h2>
+              <h2 className="text-lg md:text-xl font-medium text-gray-800 mb-4">{t('product.materials')}:</h2>
               <div className="mb-6">
                     <div className="flex items-center mb-2">
-                      <h3 className="text-sm font-medium text-gray-800">Material:</h3>
+                      <h3 className="text-sm font-medium text-gray-800">{t('product.material')}:</h3>
                       <span className="ml-2 text-sm text-gray-600">
-                        {product.materialPrice ? `$${product.materialPrice} sq/ft` : ""}
+                        {product.materialPrice ? `${getCurrencySymbol()}${product.materialPrice} ${t('product.perSqFt')}` : ""}
                       </span>
                     </div>
 
                     <div className="grid grid-cols-4 gap-2">
                       {product.material &&
                         product.material.map((material, index) => {
-                          // Default material types if not specified
-                          const materialTypes = {
-                            SMOOTH: "peel and stick",
-                            FABRIC: "peel and stick",
-                            CANVAS: "traditional",
-                            LINEN: "peel and stick",
-                          }
-
-                          const materialType = materialTypes[material.toUpperCase()] || "peel and stick"
-
+                          // Get the material name in the current language
+                          const materialName = material[currentLanguage] || material.en || '';
+                          
                           return (
                             <button
-                              key={material}
+                              key={`${material.en}-${index}`}
                               className={`border border-gray-300 rounded p-3 text-center hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-500 ${index === 0 ? "bg-gray-500 text-white" : ""}`}
-                              onClick={() => console.log(`${material} selected`)}
+                              onClick={() => console.log(`${materialName} selected`)}
                             >
-                              <div className="text-xs uppercase font-medium">{material}</div>
-                              
+                              <div className="text-xs uppercase font-medium">{materialName}</div>
                             </button>
                           )
                         })}
@@ -663,14 +663,14 @@ export function ProductInfo() {
                   </div>
               
               <div className="mt-4">
-                <p className="text-gray-700">{product.materialDescription || "No material description available."}</p>
+                <p className="text-gray-700">{materialDescription || t('common.noMaterialDescription')}</p>
               </div>
             </div>
             <div className="space-y-6 md:space-y-8">
               {/* Color Customization Section */}
               {showCustomizationControls && (
                 <div className="border-t border-gray-200 pt-6">
-                  <h2 className="text-lg md:text-xl font-medium text-gray-800 mb-4">Customize Colors:</h2>
+                  <h2 className="text-lg md:text-xl font-medium text-gray-800 mb-4">{t('product.customizeColors')}:</h2>
                   <div className="flex flex-wrap gap-3 md:gap-4 items-start">
                     {" "}
                     {/* Align items start */}
@@ -700,8 +700,8 @@ export function ProductInfo() {
                     ))}
                   </div>
                   <p className="text-xs text-gray-500 mt-3 italic">
-                    Click a circle above to choose a new color.{" "}
-                    {Object.keys(selectedUserColors).length > 0 ? "(* indicates changed color)" : ""}
+                    {t('product.clickToChooseColor')}{" "}
+                    {Object.keys(selectedUserColors).length > 0 ? t('product.changedColorNote') : ""}
                   </p>
                 </div>
               )}
@@ -709,13 +709,13 @@ export function ProductInfo() {
               {/* Measurements Section - Only show if product is measurable */}
               {product.ismeasureable && (
                 <div className="border-t border-gray-200 pt-6">
-                  <h2 className="text-lg md:text-xl font-medium text-gray-800 mb-4">Measurements:</h2>
+                  <h2 className="text-lg md:text-xl font-medium text-gray-800 mb-4">{t('product.measurements')}:</h2>
                   <div className="grid grid-cols-2 gap-4 mb-6">
                     {/* Width Input */}
                     <div className="flex flex-col">
                       <div className="flex items-center mb-1">
                         <label htmlFor="width" className="text-sm text-gray-600">
-                          Wall Width
+                          {t('product.width')}
                         </label>
                         <button
                           className="ml-1 text-gray-400 hover:text-gray-600 focus:outline-none"
@@ -756,7 +756,7 @@ export function ProductInfo() {
                     <div className="flex flex-col">
                       <div className="flex items-center mb-1">
                         <label htmlFor="height" className="text-sm text-gray-600">
-                          Wall Height
+                          {t('product.height')}
                         </label>
                         <button
                           className="ml-1 text-gray-400 hover:text-gray-600 focus:outline-none"
@@ -800,7 +800,7 @@ export function ProductInfo() {
                   {/* Subtotal - Calculate based on dimensions and price */}
                   <div className="mb-6">
                     <h3 className="text-lg font-medium text-gray-800">
-                      Subtotal:{" "}
+                      {t('cart.subtotal')}:{" "}
                       <span className="font-semibold">
                         {getCurrencySymbol()}
                         {(() => {
@@ -828,18 +828,18 @@ export function ProductInfo() {
                   className="flex-1 px-5 md:px-7 py-3 bg-gray-800 text-white font-semibold rounded-md hover:bg-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 transition-colors text-sm md:text-base text-center shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
                   disabled={loading || loadingSvg || loadingStandardImage} // Disable during any loading
                 >
-                  ADD TO CART
+                  {t('product.addToCart')}
                 </button>
                 <button
                   onClick={() => {}}
                   className="flex-1 px-5 md:px-7 py-3 bg-white border border-gray-300 text-gray-800 font-semibold rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors text-sm md:text-base text-center shadow-sm"
                 >
-                  BUY SAMPLE
+                  {t('product.buySample')}
                 </button>
                 <button
                   onClick={addToWishlist}
-                  title="Add to Wishlist"
-                  aria-label="Add to Wishlist"
+                  title={t('product.addToWishlist')}
+                  aria-label={t('product.addToWishlist')}
                   className="flex items-center justify-center p-3 bg-gray-100 border border-gray-200 rounded-md hover:bg-gray-200 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-1 transition-colors duration-200 disabled:opacity-60"
                   disabled={loading} // Disable only during initial product load
                 >

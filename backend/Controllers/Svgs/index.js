@@ -8,7 +8,27 @@ import slugify from 'slugify';
 import Admin from './../../Models/Admin/index.js';
 import Cart from '../../Models/Cart/index.js';
 import Wishlist from './../../Models/Wishlist/index.js';
+import nodemailer from 'nodemailer';
+import Subscriber from './../../Models/Users/subscribers.js'
+import { translateObject, translateArray } from '../../Utils/translator.js';
+
 dotenv.config();
+
+
+const createTransporter = async () => {
+  try {
+    return nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: 'fabbhome@gmail.com',
+        pass: 'kwot wwja jdvm vmvt', 
+      },
+    });
+  } catch (error) {
+    console.error('Failed to create transporter:', error);
+    throw new Error('Failed to create transporter');
+  }
+};
 
 export const uploadSvg = async (req, res) => {
   try {
@@ -17,6 +37,7 @@ export const uploadSvg = async (req, res) => {
     }
 
     const {
+      productID,
       title,
       price,
       category,
@@ -30,46 +51,124 @@ export const uploadSvg = async (req, res) => {
       materialDescription
     } = req.body;
 
-    // Validate required fields
-    if (!title || !price || !category || !description || !url) {
-      console.log('price title category description url', price, title, category, description, url);
+    if (!productID || !title || !price || !category || !description || !url) {
       return res.status(400).json({ error: 'Required fields are missing' });
     }
 
-    // Generate slug from title
-    const slug = slugify(title, { lower: true, strict: true });
+    // Handle translations for title and description
+    const translatedTitle = {
+      en: title.en || title,
+      es: title.es || '',
+      fr: title.fr || '',
+      de: title.de || ''
+    };
 
-    // Check if slug already exists
-    const existingSvg = await Svg.findOne({ slug });
-    if (existingSvg) {
-      return res.status(400).json({ error: 'A design with this title already exists' });
+    const translatedDescription = {
+      en: description.en || description,
+      es: description.es || '',
+      fr: description.fr || '',
+      de: description.de || ''
+    };
+
+    // Handle material translations if provided
+    const translatedMaterial = material ? material.map(item => ({
+      en: item.en || item,
+      es: item.es || '',
+      fr: item.fr || '',
+      de: item.de || ''
+    })) : [];
+
+    const translatedMaterialDescription = materialDescription ? {
+      en: materialDescription.en || materialDescription,
+      es: materialDescription.es || '',
+      fr: materialDescription.fr || '',
+      de: materialDescription.de || ''
+    } : { en: '', es: '', fr: '', de: '' };
+
+    // Generate a base slug
+    let baseSlug = slugify(translatedTitle.en, { lower: true, strict: true });
+    let slug = baseSlug;
+    let counter = 1;
+
+    // Keep checking if slug exists and update it if needed
+    while (await Svg.findOne({ slug })) {
+      slug = `${baseSlug}-${counter}`;
+      counter++;
     }
 
-    // Create new SVG document
+    // Check if this productID already has an entry
+    const existingSvg = await Svg.findOne({ productID });
+    if (existingSvg) {
+      return res.status(400).json({ error: 'A design with this title already exists for the same product' });
+    }
+
     const newSvg = new Svg({
-      title,
+      productID,
+      title: translatedTitle,
       price,
       category,
-      description,
+      description: translatedDescription,
       url,
       slug,
       isfeatured: Boolean(isfeatured),
+      editablecolors: editablecolors || [],
       isbanner: Boolean(isbanner),
       instagram_link,
-      material: material || [],
-      materialDescription: materialDescription || ''
+      material: translatedMaterial,
+      materialDescription: translatedMaterialDescription
     });
 
     await newSvg.save();
 
+    // Send emails to all subscribers
+    const transporter = await createTransporter();
+    const subscribers = await Subscriber.find({}, 'email');
+
+    const mailOptions = {
+      from: 'fabbhome@gmail.com',
+      subject: '✨ New Wallpaper Design Just Dropped!',
+      html: `
+        <div style="font-family: Arial, sans-serif; color: #333;">
+          <div style="background-color: black; color: white; padding: 20px; text-align: center;">
+            <h1>FABBHOME</h1>
+            <p>WALLPAPER • MURALS • CURTAINS • FURNISHINGS</p>
+          </div>
+          <div style="padding: 20px;">
+            <h2>${translatedTitle.en}</h2>
+            ${url.map(image => `
+              <img src="${image}" alt="${translatedTitle.en}" style="width: 100%; max-width: 600px; margin-bottom: 10px; border-radius: 5px;" />
+            `).join('')}
+            <p style="margin: 20px 0;">${translatedDescription.en}</p>
+            <p><strong>Category:</strong> ${category}</p>
+            <p><strong>Price:</strong> $${price}</p>
+            <a href="${instagram_link || '#'}" style="display: inline-block; margin-top: 20px; padding: 10px 20px; background-color: #2f4f4f; color: white; text-decoration: none; border-radius: 4px;">Shop Now</a>
+          </div>
+          <div style="background-color: #f4f4f4; padding: 20px; text-align: center;">
+            <p>You're receiving this email because you're subscribed to FabbHome updates.</p>
+          </div>
+        </div>
+      `
+    };
+
+    const mailPromises = subscribers.map(subscriber =>
+      transporter.sendMail({ ...mailOptions, to: subscriber.email })
+    );
+
+    await Promise.all(mailPromises);
+
     res.status(201).json({
-      message: 'SVG uploaded successfully',
+      message: 'SVG uploaded and emails sent to subscribers successfully',
       svg: newSvg
     });
+
   } catch (error) {
+    console.error('Error in uploadSvg:', error);
     res.status(500).json({ error: error.message });
   }
 };
+
+
+
 export const EditSvg = async (req, res) => {
   try {
     const { id } = req.params;
@@ -85,7 +184,7 @@ export const EditSvg = async (req, res) => {
       isbanner,
       editablecolors,
       instagram_link,
-      ismeasureable, // Include ismeasureable in the request body
+      ismeasureable,
       material,
       materialDescription
     } = req.body;
@@ -98,8 +197,38 @@ export const EditSvg = async (req, res) => {
       });
     }
 
+    // Handle translations for title and description
+    const translatedTitle = {
+      en: title.en || title,
+      es: title.es || '',
+      fr: title.fr || '',
+      de: title.de || ''
+    };
+
+    const translatedDescription = {
+      en: description.en || description,
+      es: description.es || '',
+      fr: description.fr || '',
+      de: description.de || ''
+    };
+
+    // Handle material translations if provided
+    const translatedMaterial = material ? material.map(item => ({
+      en: item.en || item,
+      es: item.es || '',
+      fr: item.fr || '',
+      de: item.de || ''
+    })) : [];
+
+    const translatedMaterialDescription = materialDescription ? {
+      en: materialDescription.en || materialDescription,
+      es: materialDescription.es || '',
+      fr: materialDescription.fr || '',
+      de: materialDescription.de || ''
+    } : { en: '', es: '', fr: '', de: '' };
+
     // Generate slug from title
-    const slug = slugify(title, {
+    const slug = slugify(translatedTitle.en, {
       lower: true,
       strict: true
     });
@@ -121,10 +250,10 @@ export const EditSvg = async (req, res) => {
     const updatedSvg = await Svg.findByIdAndUpdate(
       id,
       {
-        title,
+        title: translatedTitle,
         price,
         category,
-        description,
+        description: translatedDescription,
         url,
         slug,
         iseditable: Boolean(iseditable),
@@ -133,9 +262,9 @@ export const EditSvg = async (req, res) => {
         featureOnInstagram: Boolean(featureOnInstagram),
         editablecolors: iseditable ? editablecolors : [],
         instagram_link,
-        ismeasureable: Boolean(ismeasureable), // Update ismeasureable field
-        material: material || [],
-        materialDescription: materialDescription || '',
+        ismeasureable: Boolean(ismeasureable),
+        material: translatedMaterial,
+        materialDescription: translatedMaterialDescription,
         updatedAt: new Date()
       },
       { 

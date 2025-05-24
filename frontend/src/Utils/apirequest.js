@@ -2,7 +2,7 @@ import axios from "axios";
 
 async function sendRequest(method, url, body = null) {
   console.log("body", body);
-  const baseURL = "https://colors-site-sgv1.vercel.app"; // Ensure this is defined in .env
+  const baseURL = "http://localhost:3001"; // Ensure this is defined in .env
 
   if (!baseURL) {
     throw new Error("Base URL is not defined in the environment variables.");

@@ -6,8 +6,11 @@ import { useCurrency } from "../../Context/CurrencyContext";
 import useProfileAuthStore from "../../Zustand/profileAuthStore";
 import toast, { Toaster } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import LanguageSelector from "../LanguageSelector";
 
 const Navbar = () => {
+  const { t } = useTranslation();
   const { currency, setCurrency, getCurrencySymbol } = useCurrency();
   const currencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'NZD'];
   const navigate = useNavigate();
@@ -15,9 +18,7 @@ const Navbar = () => {
 
   // ===== FUNCTIONAL STATE =====
   const user = useProfileAuthStore((state) => state.isLoggedIn);
-  // State to hold the entire cart object from the API
   const [cartData, setCartData] = useState({ items: [], subtotal: 0, totalDiscount: 0 });
-  // State for UI toggles
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -33,7 +34,6 @@ const Navbar = () => {
     }
   };
 
-  // Function to fetch/refresh cart data
   const fetchCartData = async () => {
     if (!user) {
       setCartData({ items: [], subtotal: 0, totalDiscount: 0 });
@@ -53,23 +53,22 @@ const Navbar = () => {
     }
   };
 
-  // Fetch cart data on mount and when user login status changes
   useEffect(() => {
     fetchCartData();
-  }, [user]); // Re-fetch when user logs in/out
+  }, [user]);
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
     if (!isMobileMenuOpen) {
-      setIsCartOpen(false); // Close cart if opening menu
-      setIsSearchActive(false); // Close search if opening menu
+      setIsCartOpen(false);
+      setIsSearchActive(false);
     }
   };
 
   const toggleMobileSearch = () => {
     setIsSearchActive(!isSearchActive);
     if (!isSearchActive) {
-      setIsMobileMenuOpen(false); // Close menu if opening search
+      setIsMobileMenuOpen(false);
     }
   };
 
@@ -78,14 +77,13 @@ const Navbar = () => {
       toast.error("Please login to open the cart!");
       return;
     }
-    // Fetch latest data when opening the cart
     if (!isCartOpen) {
       fetchCartData();
     }
     setIsCartOpen(!isCartOpen);
     if (!isCartOpen) {
-      setIsMobileMenuOpen(false); // Close menu if opening cart
-      setIsSearchActive(false); // Close search if opening cart
+      setIsMobileMenuOpen(false);
+      setIsSearchActive(false);
     }
   };
 
@@ -119,7 +117,6 @@ const Navbar = () => {
   ];
   // ===== END DESIGN DATA =====
 
-  // Calculate cart item count dynamically
   const cartItemCount = cartData.items?.length || 0;
 
   return (
@@ -138,6 +135,21 @@ const Navbar = () => {
                 {link.name}
               </a>
             ))}
+          </div>
+          {/* Language and Currency Selectors */}
+          <div className="flex items-center space-x-4">
+            <LanguageSelector />
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+              className="text-sm text-gray-600 bg-transparent border-none focus:outline-none"
+            >
+              {currencies.map((curr) => (
+                <option key={curr} value={curr}>
+                  {curr} ({getCurrencySymbol(curr)})
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -162,7 +174,7 @@ const Navbar = () => {
                 <SearchIcon className="h-5 w-5 text-gray-400 absolute left-3" />
                 <input
                   type="text"
-                  placeholder="Search"
+                  placeholder={t('search.placeholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-10 pr-3 py-1 border-0 focus:ring-0 focus:outline-none text-sm"
@@ -173,27 +185,12 @@ const Navbar = () => {
             {/* Logo */}
             <div className="flex-shrink-0 flex justify-center">
               <a href="/" className="text-xl sm:text-2xl font-serif tracking-wide text-gray-800">
-                FABB
+                {t('nav.home')}
               </a>
             </div>
 
             {/* Right side icons */}
             <div className="flex items-center space-x-2 sm:space-x-4">
-              {/* Currency Selector */}
-              <div className="relative border-solid border-2 border-gray-300 rounded-md">
-                <select
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
-                  className="appearance-none bg-transparent border-none text-gray-700 py-1 sm:py-2 pl-2 sm:pl-3 pr-6 sm:pr-8 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  {currencies.map((curr) => (
-                    <option key={curr} value={curr}>
-                      {curr} ({getCurrencySymbol(curr)})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               {/* Mobile Search Toggle - Only visible on small screens */}
               <button
                 onClick={toggleMobileSearch}
@@ -265,7 +262,7 @@ const Navbar = () => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search products..."
+                placeholder={t('search.placeholder')}
                 className="flex-1 p-2 border border-gray-300 rounded-l-sm text-sm"
               />
               <button type="submit" className="bg-gray-900 text-white p-2 rounded-r-sm">
@@ -293,7 +290,7 @@ const Navbar = () => {
           <div className="h-full flex flex-col">
             {/* Header */}
             <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="text-lg font-medium">Menu</h2>
+              <h2 className="text-lg font-medium">{t('nav.menu')}</h2>
               <button 
                 onClick={() => setIsMobileMenuOpen(false)} 
                 className="p-2 hover:bg-gray-100 rounded-full"
@@ -306,7 +303,7 @@ const Navbar = () => {
             <div className="flex-1 overflow-y-auto">
               {/* Main Navigation Items */}
               <div className="py-6 px-6 border-b border-gray-200">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Shop</h3>
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">{t('nav.shop')}</h3>
                 <ul className="space-y-4">
                   {navItems.map((item) => (
                     <li key={item.slug}>
@@ -320,16 +317,16 @@ const Navbar = () => {
               
               {/* Mobile Utility Links - Only shown in mobile menu */}
               <div className="py-6 px-6 border-b border-gray-200">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Account</h3>
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">{t('nav.account')}</h3>
                 <ul className="space-y-4">
                   <li>
                     <a href="/wishlist" className="text-base font-medium text-gray-900 hover:text-gray-600">
-                      Wishlist
+                      {t('common.wishlist')}
                     </a>
                   </li>
                   <li>
                     <a href={user ? "/profile" : "/login"} className="text-base font-medium text-gray-900 hover:text-gray-600">
-                      {user ? "My Account" : "Login / Register"}
+                      {user ? t('common.profile') : t('common.login')}
                     </a>
                   </li>
                 </ul>
@@ -337,7 +334,7 @@ const Navbar = () => {
               
               {/* Mobile Utility Links */}
               <div className="py-6 px-6 border-b border-gray-200">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Customer Service</h3>
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">{t('nav.customerService')}</h3>
                 <ul className="space-y-4">
                   {utilityLinks.map((link) => (
                     <li key={link.name}>
@@ -360,7 +357,7 @@ const Navbar = () => {
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search products..."
+                      placeholder={t('search.placeholder')}
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                     <button
@@ -375,7 +372,7 @@ const Navbar = () => {
               
               {/* Currency Selector in Mobile Menu */}
               <div className="py-6 px-6">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Currency</h3>
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">{t('nav.currency')}</h3>
                 <select
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
@@ -393,7 +390,7 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Cart Component - Updated approach */}
+      {/* Cart Component */}
       <Cart 
         isCartOpen={isCartOpen} 
         setIsCartOpen={setIsCartOpen}

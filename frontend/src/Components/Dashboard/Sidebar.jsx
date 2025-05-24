@@ -2,17 +2,19 @@
 
 import { CreditCard, Package, Heart, LogOut, User, Lock } from "lucide-react"
 import useAuthStore from "./../../Zustand/profileAuthStore" // Adjust the path to your Zustand store
+import { useTranslation } from "react-i18next"
 
-function AccountSidebar({ activeTab, setActiveTab }) {
+function AccountSidebar({ activeTab, setActiveTab, language }) {
+  const { t } = useTranslation();
   const logout = useAuthStore((state) => state.logout) // Access the logout function from Zustand
 
   const navItems = [
-    { id: "account", label: "Account Information", icon: User },
-    { id: "orders", label: "My Orders", icon: Package },
-    { id: "payment", label: "Payment Methods", icon: CreditCard },
-    { id: "password", label: "Change Password", icon: Lock },
-    { id: "wishlist", label: "Wishlist", icon: Heart },
-    { id: "logout", label: "Logout", icon: LogOut },
+    { id: "account", label: t('dashboard.sidebar.account'), icon: User },
+    { id: "orders", label: t('dashboard.sidebar.orders'), icon: Package },
+    { id: "payment", label: t('dashboard.sidebar.payment'), icon: CreditCard },
+    { id: "password", label: t('dashboard.sidebar.password'), icon: Lock },
+    { id: "wishlist", label: t('dashboard.sidebar.wishlist'), icon: Heart },
+    { id: "logout", label: t('dashboard.sidebar.logout'), icon: LogOut },
   ]
 
   return (
@@ -34,7 +36,7 @@ function AccountSidebar({ activeTab, setActiveTab }) {
 
       {/* Sidebar Navigation - Desktop */}
       <div className="hidden md:block w-full md:w-64 shrink-0">
-        <h2 className="text-xl font-medium mb-6">My Account & Orders</h2>
+        <h2 className="text-xl font-medium mb-6">{t('dashboard.sidebar.title')}</h2>
         <nav className="space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon

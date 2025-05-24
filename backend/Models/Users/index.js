@@ -28,6 +28,10 @@ const userSchema = new mongoose.Schema({
         unique: true,
         trim: true,
     },
+    hasSubscribed: {
+        type: Boolean,
+        default: false,
+    },  
     createdAt: {
         type: Date,
         default: Date.now,

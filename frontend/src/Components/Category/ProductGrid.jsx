@@ -1,9 +1,14 @@
+import { useTranslation } from 'react-i18next';
+
 export function ProductGrid({ categoryData }) {
+  const { i18n } = useTranslation();
+  const currentLanguage = i18n.language;
+
   const products = categoryData.map((item) => ({
     id: item.id,
-    name: item.title,
+    name: item.title?.[currentLanguage] || item.title?.en || item.title,
     price: item.price,
-    image: item.url[0]||item.url,
+    image: item.url[0] || item.url,
     slug: item.slug,
   }));
 
@@ -24,7 +29,7 @@ export function ProductGrid({ categoryData }) {
               />
             </div>
             <h3 className="text-sm text-gray-900 group-hover:text-gray-600 transition-colors duration-200 truncate">
-              {product.name}
+              {product.title.en}
             </h3>
             <p className="text-sm text-gray-900 mt-1">${product.price.toFixed(2)}</p>
           </a>

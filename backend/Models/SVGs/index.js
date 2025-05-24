@@ -1,9 +1,21 @@
 import { Schema, model } from 'mongoose';
 import slugify from 'slugify'; 
+
+const TranslationSchema = new Schema({
+    en: { type: String, required: false },
+    es: { type: String },
+    fr: { type: String },
+    de: { type: String }
+}, { _id: false });
+
 const SvgSchema = new Schema(
     {
+        productID: {
+            type: Number,
+            required: true
+        },
         title: {
-            type: String,
+            type: TranslationSchema,
             required: true,
         },
         price: {
@@ -15,7 +27,7 @@ const SvgSchema = new Schema(
             required: true,
         },
         description: {
-            type: String,
+            type: TranslationSchema,
             required: true,
         },
         typeoffile: {
@@ -30,14 +42,12 @@ const SvgSchema = new Schema(
         slug: {
             type: String,
             required: true,
-            unique: true,
         },
         url: {
             type: [String],
             required: true,
-          default: [],
+            default: [],
         },
-      
         isfeatured: {
             type: Boolean,
             default: false,
@@ -50,8 +60,7 @@ const SvgSchema = new Schema(
             type: Boolean,
             default: true,
         },
-        isbanner:
-        {
+        isbanner: {
             type: Boolean,
             default: false,
         },
@@ -64,12 +73,12 @@ const SvgSchema = new Schema(
             default: false,
         },
         material: {
-            type: [String],
+            type: [TranslationSchema],
             default: [],
         },
         materialDescription: {
-            type: String,
-            default: '',
+            type: TranslationSchema,
+            default: { en: '' },
         },
         createdAt: {
             type: Date,
@@ -85,12 +94,10 @@ const SvgSchema = new Schema(
     }
 );
 
-SvgSchema.pre('save', function (next) {
-    if (!this.slug) {
-        this.slug = slugify(this.title, {
-            lower: true, 
-            strict: true, 
-        });
+// Pre-save middleware to ensure slug is generated
+SvgSchema.pre('save', function(next) {
+    if (this.isModified('title.en')) {
+        this.slug = slugify(this.title.en, { lower: true });
     }
     next();
 });

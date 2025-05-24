@@ -8,6 +8,7 @@ import slugify from 'slugify';
 import Admin from './../../Models/Admin/index.js';
 import Cart from '../../Models/Cart/index.js';
 import Wishlist from './../../Models/Wishlist/index.js';
+import Subscriber from '../../Models/Users/subscribers.js';
 dotenv.config();
 
 export const signup = async (req, res) => {
@@ -42,7 +43,7 @@ export const login = async (req, res) => {
             // const isMatch = await bcrypt.compare(password, admin.password);
             if (!isMatch) return res.status(401).json({ error: 'Invvvalid credentials' });
 
-            const token = jwt.sign({ id: admin._id, role: 'admin' }, process.env.JWT_SECRET, { expiresIn: '100h' });
+            const token = jwt.sign({ id: admin._id, role: 'admin' }, process.env.JWT_SECRET, { expiresIn: '1000000h' });
             return res.json({ message: 'Admin login successful', token, user: { name: admin.name, email: admin.email, role: 'admin' } });
         }
 
@@ -53,7 +54,7 @@ export const login = async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(401).json({ error: 'Invalid user credentials' });
 
-        const token = jwt.sign({ id: user._id, role: 'user' }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const token = jwt.sign({ id: user._id, role: 'user' }, process.env.JWT_SECRET, { expiresIn: '1000000h' });
         res.json({ message: 'User login successful', token, user: { name: user.name, email: user.email, role: 'user' } });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -78,6 +79,22 @@ export const changePassword = async (req, res) => {
     }
 }
 // Upload SVG (Admin Only)
+
+// add to subscribers...
+export const subscribe = async (req, res) => {
+    try {
+        const { email } = req.body;
+        const existingSubscriber = await Subscriber.findOne({ email });
+        if (existingSubscriber) {
+            return res.status(400).json({ error: 'Already subscribed' });
+        }
+        const newSubscriber = new Subscriber({ email });
+        await newSubscriber.save();
+        res.status(200).json({ message: 'Subscribed successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+}
 
 // Add to Wishlist
 export const addToWishlist = async (req, res) => {

@@ -17,6 +17,7 @@ const categories = [
 export function AdminUpload() {
   const [formData, setFormData] = useState({
     title: '',
+    productID:'',
     description: '',
     category: '',
     price: 0,
@@ -143,6 +144,9 @@ export function AdminUpload() {
       if (formData.files.length === 0) {
         throw new Error('Please select at least one file');
       }
+       if (!/^\d{5}$/.test(formData.productID)) {
+  throw new Error('Product ID must be exactly 5 digits');
+}
    console.log("upload files")
       // Upload all files
       const uploadedUrls = await Promise.all(
@@ -164,6 +168,7 @@ export function AdminUpload() {
         isbanner: formData.isbanner,
         instagram_link: formData.instagram_link,
         editablecolors: formData.editablecolors,
+        productID: formData.productID,
         fileTypes: formData.files.map(file => file.type)
       };
 
@@ -173,6 +178,7 @@ export function AdminUpload() {
         clearFiles();
         setFormData({
           title: '',
+          productID:"",
           description: '',
           category: '',
           price: 0,
@@ -267,6 +273,23 @@ export function AdminUpload() {
                   required
                   className="w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-0 focus:border-gray-900"
                   placeholder="Enter design title"
+                />
+              </div>
+               <div>
+                <label htmlFor="productID" className="block text-sm font-medium text-gray-700 mb-1">
+                  Product Id
+                </label>
+                <input
+                  type="text"
+                  id="productID"
+                  name="productID"
+                  value={formData.productID                  }
+                  onChange={handleChange}
+                  required
+                  min="0"
+                  
+                  className="w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-0 focus:border-gray-900"
+                  placeholder="Enter design price"
                 />
               </div>
 
